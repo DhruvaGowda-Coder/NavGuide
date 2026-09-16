@@ -13,9 +13,21 @@ class RouteSafetyRecommendationScreen extends StatefulWidget {
   const RouteSafetyRecommendationScreen({
     super.key,
     this.initialPresetIndex = 0,
+    this.customOriginLat,
+    this.customOriginLon,
+    this.customOriginName,
+    this.customDestLat,
+    this.customDestLon,
+    this.customDestName,
   });
 
   final int initialPresetIndex;
+  final double? customOriginLat;
+  final double? customOriginLon;
+  final String? customOriginName;
+  final double? customDestLat;
+  final double? customDestLon;
+  final String? customDestName;
 
   @override
   State<RouteSafetyRecommendationScreen> createState() =>
@@ -55,14 +67,21 @@ class _RouteSafetyRecommendationScreenState
       _errorMessage = null;
     });
 
+    final oLat = widget.customOriginLat ?? _selectedPreset.originLat;
+    final oLon = widget.customOriginLon ?? _selectedPreset.originLon;
+    final dLat = widget.customDestLat ?? _selectedPreset.destLat;
+    final dLon = widget.customDestLon ?? _selectedPreset.destLon;
+    final oName = widget.customOriginName ?? _selectedPreset.originName;
+    final dName = widget.customDestName ?? _selectedPreset.destName;
+
     try {
       final routes = await _dataService.fetchEnrichedRoutes(
-        originLat: _selectedPreset.originLat,
-        originLon: _selectedPreset.originLon,
-        destLat: _selectedPreset.destLat,
-        destLon: _selectedPreset.destLon,
-        originName: _selectedPreset.originName,
-        destName: _selectedPreset.destName,
+        originLat: oLat,
+        originLon: oLon,
+        destLat: dLat,
+        destLon: dLon,
+        originName: oName,
+        destName: dName,
       );
 
       final ranked = _scoringEngine.rankRoutes(routes, mode: _selectedMode);

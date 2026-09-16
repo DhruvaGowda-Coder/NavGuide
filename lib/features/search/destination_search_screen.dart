@@ -1,52 +1,132 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../safety_data/route_safety_inspection_screen.dart';
 import '../safety_scoring/route_safety_recommendation_screen.dart';
+import '../location/location_controller.dart';
+import '../../device/search/place_search_service.dart';
 
-class DestinationSearchScreen extends StatefulWidget {
+class DestinationSearchScreen extends ConsumerStatefulWidget {
   const DestinationSearchScreen({super.key});
 
   @override
-  State<DestinationSearchScreen> createState() => _DestinationSearchScreenState();
+  ConsumerState<DestinationSearchScreen> createState() =>
+      _DestinationSearchScreenState();
 }
 
-class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
+class _DestinationSearchScreenState
+    extends ConsumerState<DestinationSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final PlaceSearchService _placeSearchService = PlaceSearchService();
+  Timer? _debounceTimer;
+
   String _query = '';
+  bool _isSearchingLive = false;
+  List<PlaceResult> _placeSuggestions = [];
 
   final List<String> _quickChips = [
-    'Silk Board',
-    'Electronic City',
-    'Whitefield',
-    'Hebbal',
+    'Airport (BLR)',
+    'Indiranagar',
     'Koramangala',
     'MG Road',
+    'Whitefield',
+    'Electronic City',
+    'Silk Board',
+    'Hebbal',
+    'Majestic',
+    'Jayanagar',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _placeSuggestions = PlaceSearchService.popularBangalorePlaces;
+  }
+
+  @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged(String val) {
+    setState(() {
+      _query = val.trim();
+    });
+
+    _debounceTimer?.cancel();
+    if (_query.isEmpty) {
+      setState(() {
+        _placeSuggestions = PlaceSearchService.popularBangalorePlaces;
+        _isSearchingLive = false;
+      });
+      return;
+    }
+
+    // Filter local immediately
+    final clean = _query.toLowerCase();
+    final immediate = PlaceSearchService.popularBangalorePlaces.where((p) {
+      return p.name.toLowerCase().contains(clean) ||
+          p.address.toLowerCase().contains(clean) ||
+          p.category.toLowerCase().contains(clean);
+    }).toList();
+
+    setState(() {
+      _placeSuggestions = immediate;
+      _isSearchingLive = true;
+    });
+
+    // Debounced live network query
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
+      final results = await _placeSearchService.searchPlaces(_query);
+      if (!mounted) return;
+      setState(() {
+        _placeSuggestions = results;
+        _isSearchingLive = false;
+      });
+    });
+  }
+
+  void _navigateToDestination(PlaceResult place) {
+    final fix = ref.read(locationControllerProvider).fix;
+    final currentLat = fix?.latitude ?? 12.9716;
+    final currentLon = fix?.longitude ?? 77.5946;
+    final originName = fix != null ? 'Current Location' : 'Bengaluru Center';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RouteSafetyRecommendationScreen(
+          customOriginLat: currentLat,
+          customOriginLon: currentLon,
+          customOriginName: originName,
+          customDestLat: place.latitude,
+          customDestLon: place.longitude,
+          customDestName: place.name,
+        ),
+      ),
+    );
+  }
+
+  double _calcDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+    const p = 0.017453292519943295;
+    final a = 0.5 -
+        math.cos((lat2 - lat1) * p) / 2 +
+        math.cos(lat1 * p) *
+            math.cos(lat2 * p) *
+            (1 - math.cos((lon2 - lon1) * p)) /
+            2;
+    return 12742 * math.asin(math.sqrt(a));
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-
-    // Filter corridors according to search query
-    final filteredIndices = <int>[];
-    for (var i = 0; i < kBangaloreRoutePresets.length; i++) {
-      final p = kBangaloreRoutePresets[i];
-      if (_query.isEmpty) {
-        filteredIndices.add(i);
-      } else {
-        final q = _query.toLowerCase();
-        final matches = p.title.toLowerCase().contains(q) ||
-            p.subtitle.toLowerCase().contains(q) ||
-            p.originName.toLowerCase().contains(q) ||
-            p.destName.toLowerCase().contains(q);
-        if (matches) filteredIndices.add(i);
-      }
-    }
+    final fix = ref.watch(locationControllerProvider).fix;
+    final userLat = fix?.latitude;
+    final userLon = fix?.longitude;
 
     return Scaffold(
       appBar: AppBar(
@@ -55,22 +135,32 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
       body: ListView(
         padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
         children: [
+          // Search Input Bar
           TextField(
             controller: _searchController,
-            onChanged: (val) => setState(() => _query = val.trim()),
+            onChanged: _onQueryChanged,
             decoration: InputDecoration(
               labelText: 'Where would you like to go?',
-              hintText: 'e.g. Electronic City, Whitefield, Hebbal',
+              hintText: 'Search any location, area, or landmark…',
               prefixIcon: const Icon(Icons.search),
-              suffixIcon: _query.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _query = '');
-                      },
+              suffixIcon: _isSearchingLive
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
-                  : null,
+                  : (_query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onQueryChanged('');
+                          },
+                        )
+                      : null),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -78,7 +168,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
               fillColor: Colors.grey.shade50,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Quick Filter Chips
           SingleChildScrollView(
@@ -86,11 +176,11 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
             child: Row(
               children: [
                 ActionChip(
-                  label: const Text('All Corridors', style: TextStyle(fontSize: 11)),
-                  avatar: const Icon(Icons.route, size: 14),
+                  label: const Text('All Places', style: TextStyle(fontSize: 11)),
+                  avatar: const Icon(Icons.location_on_outlined, size: 14),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _query = '');
+                    _onQueryChanged('');
                   },
                 ),
                 const SizedBox(width: 6),
@@ -101,7 +191,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                       label: Text(chip, style: const TextStyle(fontSize: 11)),
                       onPressed: () {
                         _searchController.text = chip;
-                        setState(() => _query = chip);
+                        _onQueryChanged(chip);
                       },
                     ),
                   ),
@@ -110,9 +200,9 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Phase 7 AI Safest-Route Recommendation Banner
+          // Consumer-Facing AI Safest-Route Recommendation Banner (No Phase badges)
           Card(
-            elevation: 3,
+            elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
               side: const BorderSide(color: Color(0xff23695a), width: 1.5),
@@ -131,7 +221,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                           color: const Color(0xff23695a),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.auto_awesome,
+                        child: const Icon(Icons.shield,
                             color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
@@ -140,16 +230,16 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Phase 7: Safest-Route AI Engine',
+                              'Safest-Route AI Engine',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xff23695a),
                               ),
                             ),
                             Text(
-                              '6D Risk Scoring • Peak-Hazard Penalty • Multi-Objective Ranking',
-                              style: TextStyle(fontSize: 10, color: Colors.black54),
+                              'Live Risk Evaluation · Accident & Flood Hotspots',
+                              style: TextStyle(fontSize: 11, color: Colors.black54),
                             ),
                           ],
                         ),
@@ -158,7 +248,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Evaluates candidate routes balancing safety vs. travel time in Safest, Balanced, or Fastest modes. Identifies critical hazards and explains why a route is recommended.',
+                    'Evaluates candidate routes balancing safety vs. travel time. Identifies critical flood zones, accident blackspots, and weather hazards along your path.',
                     style: TextStyle(fontSize: 12, height: 1.4),
                   ),
                   const SizedBox(height: 12),
@@ -172,44 +262,48 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                         ),
                       ),
                       onPressed: () {
-                        final targetIdx = filteredIndices.isNotEmpty ? filteredIndices.first : 0;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RouteSafetyRecommendationScreen(
-                              initialPresetIndex: targetIdx,
+                        if (_placeSuggestions.isNotEmpty) {
+                          _navigateToDestination(_placeSuggestions.first);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RouteSafetyRecommendationScreen(
+                                initialPresetIndex: 0,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
-                      icon: const Icon(Icons.shield_outlined, size: 18),
-                      label: const Text('Open Safest-Route AI Engine'),
+                      icon: const Icon(Icons.navigation, size: 18),
+                      label: const Text('Plan Safe Route to Top Destination'),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           const SizedBox(height: 20),
+
+          // Dynamic Place Results Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Bangalore Safety Corridors',
+                _query.isEmpty ? 'Popular Bangalore Destinations' : 'Matching Destinations',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               Text(
-                '${filteredIndices.length} available',
+                '${_placeSuggestions.length} found',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
-          if (filteredIndices.isEmpty)
+          if (_placeSuggestions.isEmpty)
             Card(
               elevation: 0,
               color: Colors.grey.shade100,
@@ -221,12 +315,12 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                     Icon(Icons.search_off, size: 40, color: Colors.grey.shade500),
                     const SizedBox(height: 8),
                     Text(
-                      'No corridors matching "$_query"',
+                      'No destinations found for "$_query"',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Try searching Silk Board, Hebbal, Whitefield, or Electronic City.',
+                      'Try typing an area like Indiranagar, Whitefield, Airport, or MG Road.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
@@ -234,80 +328,110 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                     TextButton(
                       onPressed: () {
                         _searchController.clear();
-                        setState(() => _query = '');
+                        _onQueryChanged('');
                       },
-                      child: const Text('View All Corridors'),
+                      child: const Text('Show Popular Destinations'),
                     ),
                   ],
                 ),
               ),
             )
           else
-            for (final i in filteredIndices) ...[
+            for (final place in _placeSuggestions) ...[
               Card(
                 margin: const EdgeInsets.symmetric(vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor:
-                        const Color(0xff23695a).withValues(alpha: 0.1),
-                    child:
-                        const Icon(Icons.route_outlined, color: Color(0xff23695a)),
+                    backgroundColor: const Color(0xff23695a).withValues(alpha: 0.1),
+                    child: const Icon(Icons.location_on, color: Color(0xff23695a)),
                   ),
                   title: Text(
-                    kBangaloreRoutePresets[i].title,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    place.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   subtitle: Text(
-                    kBangaloreRoutePresets[i].subtitle,
+                    place.address,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11),
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      IconButton(
-                        tooltip: 'Raw Safety Data (Phase 6)',
-                        icon: const Icon(Icons.data_usage, size: 18, color: Colors.black45),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RouteSafetyInspectionScreen(
-                                initialPresetIndex: i,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        tooltip: 'Safest-Route AI (Phase 7)',
-                        icon: const Icon(Icons.security, size: 18, color: Color(0xff23695a)),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RouteSafetyRecommendationScreen(
-                                initialPresetIndex: i,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RouteSafetyRecommendationScreen(
-                          initialPresetIndex: i,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xff23695a).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          place.category,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff23695a),
+                          ),
                         ),
                       ),
-                    );
-                  },
+                      if (userLat != null && userLon != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_calcDistanceKm(userLat, userLon, place.latitude, place.longitude).toStringAsFixed(1)} km',
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ],
+                  ),
+                  onTap: () => _navigateToDestination(place),
                 ),
               ),
             ],
+
+          const SizedBox(height: 24),
+
+          // Standard Pre-Monitored Safety Corridors
+          Text(
+            'Pre-Monitored High-Risk Corridors',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < kBangaloreRoutePresets.length; i++) ...[
+            Card(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.teal.shade50,
+                  child: Icon(Icons.route, color: Colors.teal.shade800),
+                ),
+                title: Text(
+                  kBangaloreRoutePresets[i].title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                subtitle: Text(
+                  kBangaloreRoutePresets[i].subtitle,
+                  style: const TextStyle(fontSize: 11),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RouteSafetyRecommendationScreen(
+                        initialPresetIndex: i,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
