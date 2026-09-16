@@ -85,8 +85,8 @@ class SettingsScreen extends StatelessWidget {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.layers_outlined, color: Color(0xff23695a)),
-              title: const Text('Phases 1–9 Architecture Roadmap', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              subtitle: const Text('View academic milestone progression, mathematical formulations & verified stages', style: TextStyle(fontSize: 11)),
+              title: const Text('NavGuardian AI — All Features', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              subtitle: const Text('View all live features active on your device', style: TextStyle(fontSize: 11)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.push(
