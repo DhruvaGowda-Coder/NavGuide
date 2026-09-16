@@ -557,7 +557,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             top: 145,
             left: 16,
             right: 16,
-            child: _buildDynamicStatusBadge(),
+            child: GestureDetector(onTap: () => _toggleBlackoutSimulation(!_isBlackoutSimulated), child: _buildDynamicStatusBadge()),
           ),
 
           // 4. Upcoming Hazard Alert Card (Proximity Pop-up)
@@ -952,7 +952,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
 
   Widget _buildBottomNavigationBar(double bottomInset) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
+      padding: EdgeInsets.fromLTRB(18, 14, 18, 14 + bottomInset),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -967,120 +967,6 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Blackout Simulation & Demo Mode Row
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _isBlackoutEngaged ? Colors.red.shade50 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _isBlackoutEngaged ? Colors.red.shade300 : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sensors_off_rounded,
-                            size: 16,
-                            color: _isBlackoutEngaged ? Colors.red.shade800 : Colors.grey.shade700,
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'GPS Blackout',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: _isBlackoutEngaged ? Colors.red.shade900 : Colors.black87,
-                                ),
-                              ),
-                              Text(
-                                'Test AI Dead Reckoning',
-                                style: TextStyle(fontSize: 8.5, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Transform.scale(
-                        scale: 0.75,
-                        child: Switch(
-                          value: _isBlackoutSimulated,
-                          activeThumbColor: Colors.red.shade700,
-                          onChanged: _toggleBlackoutSimulation,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _isDemoSimulationMode ? Colors.blue.shade50 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _isDemoSimulationMode ? Colors.blue.shade300 : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.directions_car_outlined,
-                            size: 16,
-                            color: _isDemoSimulationMode ? Colors.blue.shade800 : Colors.grey.shade700,
-                          ),
-                          const SizedBox(width: 6),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Desk Demo',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: _isDemoSimulationMode ? Colors.blue.shade900 : Colors.black87,
-                                ),
-                              ),
-                              Text(
-                                'Auto-drive at desk',
-                                style: TextStyle(fontSize: 8.5, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Transform.scale(
-                        scale: 0.75,
-                        child: Switch(
-                          value: _isDemoSimulationMode,
-                          activeThumbColor: Colors.blue.shade700,
-                          onChanged: _toggleSimulationMode,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
           // Destination Info & End Journey Button
           Row(
             children: [
@@ -1102,6 +988,16 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                 ),
               ),
               const SizedBox(width: 10),
+              IconButton(
+                icon: Icon(
+                  _isDemoSimulationMode ? Icons.play_circle_fill : Icons.play_circle_outline,
+                  color: _isDemoSimulationMode ? const Color(0xff23695a) : Colors.grey.shade600,
+                  size: 26,
+                ),
+                tooltip: _isDemoSimulationMode ? 'Pause Desk Demo' : 'Start Desk Demo Simulation',
+                onPressed: () => _toggleSimulationMode(!_isDemoSimulationMode),
+              ),
+              const SizedBox(width: 4),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: _hasArrived ? const Color(0xff2e7d32) : const Color(0xffb71c1c),
