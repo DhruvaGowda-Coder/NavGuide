@@ -26,22 +26,22 @@ class _DestinationSearchScreenState
   List<PlaceResult> _placeSuggestions = [];
 
   final List<String> _quickChips = [
+    'Gavanahalli',
     'Airport (BLR)',
     'Indiranagar',
     'Koramangala',
-    'MG Road',
+    'Chikkamagaluru',
+    'Mysuru Palace',
     'Whitefield',
     'Electronic City',
-    'Silk Board',
-    'Hebbal',
-    'Majestic',
-    'Jayanagar',
+    'Mumbai',
+    'Delhi',
   ];
 
   @override
   void initState() {
     super.initState();
-    _placeSuggestions = PlaceSearchService.popularBangalorePlaces;
+    _placeSuggestions = PlaceSearchService.popularIndianPlaces;
   }
 
   @override
@@ -59,7 +59,7 @@ class _DestinationSearchScreenState
     _debounceTimer?.cancel();
     if (_query.isEmpty) {
       setState(() {
-        _placeSuggestions = PlaceSearchService.popularBangalorePlaces;
+        _placeSuggestions = PlaceSearchService.popularIndianPlaces;
         _isSearchingLive = false;
       });
       return;
@@ -67,7 +67,7 @@ class _DestinationSearchScreenState
 
     // Filter local immediately
     final clean = _query.toLowerCase();
-    final immediate = PlaceSearchService.popularBangalorePlaces.where((p) {
+    final immediate = PlaceSearchService.popularIndianPlaces.where((p) {
       return p.name.toLowerCase().contains(clean) ||
           p.address.toLowerCase().contains(clean) ||
           p.category.toLowerCase().contains(clean);
@@ -141,7 +141,7 @@ class _DestinationSearchScreenState
             onChanged: _onQueryChanged,
             decoration: InputDecoration(
               labelText: 'Where would you like to go?',
-              hintText: 'Search any location, area, or landmark…',
+              hintText: 'Search any town, village, or city in India (e.g. Gavanahalli)…',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _isSearchingLive
                   ? const Padding(
@@ -286,7 +286,7 @@ class _DestinationSearchScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _query.isEmpty ? 'Popular Bangalore Destinations' : 'Matching Destinations',
+                _query.isEmpty ? 'Popular Destinations (India)' : 'Matching Destinations in India',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -316,7 +316,7 @@ class _DestinationSearchScreenState
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Try typing an area like Indiranagar, Whitefield, Airport, or MG Road.',
+                      'Try searching any city, town, or village across India (e.g. Gavanahalli, Chikkamagaluru, Indiranagar, Mumbai).',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
