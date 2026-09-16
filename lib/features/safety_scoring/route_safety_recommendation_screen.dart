@@ -6,6 +6,7 @@ import '../../domain/safety_scoring_models.dart';
 import '../../device/safety_data/route_safety_data_service.dart';
 import '../../device/safety_scoring/safety_scoring_engine.dart';
 import '../../device/safety_scoring/bayesian_route_risk_evaluator.dart';
+import '../navigation/live_navigation_screen.dart';
 import '../safety_data/route_safety_inspection_screen.dart';
 
 class RouteSafetyRecommendationScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _RouteSafetyRecommendationScreenState
   List<NormalizedRouteData> _candidateRoutes = [];
   List<RankedRoute> _rankedRoutes = [];
   int _selectedRouteIndex = 0;
+  bool _isMapExpanded = false;
 
   GoogleMapController? _mapController;
 
@@ -54,7 +56,7 @@ class _RouteSafetyRecommendationScreenState
     });
 
     try {
-      final routes = await _dataService.fetchMultiCandidateRoutes(
+      final routes = await _dataService.fetchEnrichedRoutes(
         originLat: _selectedPreset.originLat,
         originLon: _selectedPreset.originLon,
         destLat: _selectedPreset.destLat,
@@ -65,6 +67,7 @@ class _RouteSafetyRecommendationScreenState
 
       final ranked = _scoringEngine.rankRoutes(routes, mode: _selectedMode);
 
+      if (!mounted) return;
       setState(() {
         _candidateRoutes = routes;
         _rankedRoutes = ranked;
@@ -74,6 +77,7 @@ class _RouteSafetyRecommendationScreenState
 
       _fitMapToRoutes();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to score corridor routes: $e';
         _isLoading = false;
@@ -91,7 +95,7 @@ class _RouteSafetyRecommendationScreenState
   }
 
   void _fitMapToRoutes() {
-    if (_mapController == null || _candidateRoutes.isEmpty) return;
+    if (!mounted || _mapController == null || _candidateRoutes.isEmpty) return;
     double minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0;
     for (final r in _candidateRoutes) {
       for (final pt in r.fullPolyline) {
@@ -102,15 +106,20 @@ class _RouteSafetyRecommendationScreenState
       }
     }
     if (minLat < maxLat) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(minLat - 0.01, minLon - 0.01),
-            northeast: LatLng(maxLat + 0.01, maxLon + 0.01),
-          ),
-          50,
-        ),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _mapController == null) return;
+        try {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngBounds(
+              LatLngBounds(
+                southwest: LatLng(minLat - 0.01, minLon - 0.01),
+                northeast: LatLng(maxLat + 0.01, maxLon + 0.01),
+              ),
+              50,
+            ),
+          );
+        } catch (_) {}
+      });
     }
   }
 
@@ -220,6 +229,8 @@ class _RouteSafetyRecommendationScreenState
         ? _rankedRoutes[_selectedRouteIndex]
         : null;
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: const Column(
@@ -243,6 +254,97 @@ class _RouteSafetyRecommendationScreenState
             onPressed: _showMlBlueprintDialog,
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, -3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: currentRanked != null
+                                ? _getScoreColor(
+                                    currentRanked.safetyScore.overallScore,
+                                    currentRanked.safetyScore.recommendationStatus,
+                                  )
+                                : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          currentRanked != null
+                              ? 'Route #${currentRanked.rank} • ${currentRanked.safetyScore.recommendationStatus.displayName}'
+                              : 'Evaluating...',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: currentRanked != null
+                                ? _getScoreColor(
+                                    currentRanked.safetyScore.overallScore,
+                                    currentRanked.safetyScore.recommendationStatus,
+                                  )
+                                : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentRanked != null
+                          ? '${currentRanked.safetyScore.overallScore}/100 Safety • ${(currentRanked.route.trafficDurationSeconds / 60).round()} min (${(currentRanked.route.distanceMeters / 1000).toStringAsFixed(1)} km)'
+                          : '',
+                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xff23695a),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: currentRanked == null
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LiveNavigationScreen(
+                              selectedRoute: currentRanked,
+                              destinationName: _selectedPreset.title,
+                            ),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.navigation, size: 16),
+                label: const Text('Start Route', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
       ),
       body: _isLoading
           ? const Center(
@@ -280,9 +382,11 @@ class _RouteSafetyRecommendationScreenState
                     // Mode Selector Bar
                     _buildModeSelector(),
 
-                    // Map View
-                    SizedBox(
-                      height: 220,
+                    // Map View (with expand/minimize toggle)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      height: _isMapExpanded ? 340.0 : 190.0,
                       child: Stack(
                         children: [
                           GoogleMap(
@@ -332,14 +436,61 @@ class _RouteSafetyRecommendationScreenState
                               ),
                             ),
                           ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2)),
+                                ],
+                              ),
+                              child: IconButton(
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                padding: EdgeInsets.zero,
+                                icon: Icon(
+                                  _isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
+                                  size: 20,
+                                  color: const Color(0xff23695a),
+                                ),
+                                tooltip: _isMapExpanded ? 'Minimize Map' : 'Expand Map',
+                                onPressed: () {
+                                  setState(() {
+                                    _isMapExpanded = !_isMapExpanded;
+                                  });
+                                  Future.delayed(const Duration(milliseconds: 260), _fitMapToRoutes);
+                                },
+                              ),
+                            ),
+                          ),
                         ],
+                      ),
+                    ),
+
+                    // Clean visual transition under map
+                    Container(
+                      height: 3,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.08),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
 
                     // Scrollable Route Comparison & Explainability Section
                     Expanded(
                       child: ListView(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.fromLTRB(12, 12, 12, 28 + bottomInset),
                         children: [
                           // Candidate Route Selection Cards
                           Text('Ranked Candidate Routes',
@@ -397,7 +548,7 @@ class _RouteSafetyRecommendationScreenState
               ),
               const Spacer(),
               Text(
-                'Safety ${_selectedMode.safetyWeight.toStringAsFixed(2)} • Time ${_selectedMode.timeWeight.toStringAsFixed(2)}',
+                'Safety ${_selectedMode.weights.safetyWeight.toStringAsFixed(2)} • Time ${_selectedMode.weights.etaWeight.toStringAsFixed(2)}',
                 style: const TextStyle(fontSize: 10, color: Colors.black54),
               ),
             ],
@@ -617,15 +768,18 @@ class _RouteSafetyRecommendationScreenState
                     children: [
                       Row(
                         children: [
-                          Text(
-                            status.displayName.toUpperCase(),
-                            style: TextStyle(
-                              color: scoreColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                          Expanded(
+                            child: Text(
+                              status.displayName.toUpperCase(),
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 6),
                           _buildConfidenceBadge(ranked.safetyScore.dataConfidence),
                         ],
                       ),

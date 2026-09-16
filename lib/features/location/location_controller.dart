@@ -83,11 +83,15 @@ class LocationController extends Notifier<TrackingState> {
       state = TrackingState(status);
       if (access != LocationAccess.granted) return;
       _services = service.serviceChanges().listen(
-        (enabled) {
+        (enabled) async {
           if (generation != _generation) return;
           if (!enabled) {
-            _cancel();
-            state = const TrackingState(TrackingStatus.disabled);
+            final check = await service.access(request: false);
+            if (generation != _generation) return;
+            if (check == LocationAccess.serviceDisabled) {
+              _cancel();
+              state = const TrackingState(TrackingStatus.disabled);
+            }
           }
         },
         onError: (Object error) {
@@ -148,3 +152,10 @@ class LocationController extends Notifier<TrackingState> {
         );
       }
     } catch (_) {
+      state = const TrackingState(
+        TrackingStatus.error,
+        message: 'Unable to open settings automatically.',
+      );
+    }
+  }
+}

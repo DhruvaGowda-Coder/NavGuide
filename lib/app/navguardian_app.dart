@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
 import '../features/home/home_screen.dart';
-import '../features/sensors/sensor_debug_screen.dart';
-import '../features/roadmap/roadmap_screen.dart';
+import '../features/crowdsourcing/community_hazards_screen.dart';
+import '../features/journey/journey_history_screen.dart';
 import '../features/settings/settings_screen.dart';
 
 class NavGuardianApp extends StatelessWidget {
@@ -32,7 +32,7 @@ class _AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<_AppShell>
     with WidgetsBindingObserver {
   int _index = 0;
-  bool _onboarded = false;
+  bool _onboarded = true;
   @override
   void initState() {
     super.initState();
@@ -98,3 +98,46 @@ class _AppShellState extends ConsumerState<_AppShell>
                       FilledButton(
                         onPressed: () => setState(() => _onboarded = true),
                         child: const Text('Get started'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : switch (_index) {
+              0 => const HomeScreen(),
+              1 => const CommunityHazardsScreen(),
+              2 => const JourneyHistoryScreen(),
+              _ => const SettingsScreen(),
+            },
+    ),
+    bottomNavigationBar: !_onboarded
+        ? null
+        : NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: (value) => setState(() => _index = value),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.explore_outlined),
+                selectedIcon: Icon(Icons.explore),
+                label: 'Explore',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.warning_amber_rounded),
+                selectedIcon: Icon(Icons.warning_rounded),
+                label: 'Hazards',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.science_outlined),
+                selectedIcon: Icon(Icons.science),
+                label: 'Journeys & AI',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: 'Settings',
+              ),
+            ],
+          ),
+  );
+}

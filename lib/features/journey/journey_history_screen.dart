@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../domain/telemetry.dart';
+import 'journey_analysis_screen.dart';
 
 class JourneyHistoryScreen extends ConsumerWidget {
   const JourneyHistoryScreen({super.key});
@@ -53,7 +54,12 @@ class JourneyHistoryScreen extends ConsumerWidget {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
               itemCount: state.history.length,
               itemBuilder: (context, index) {
                 final journey = state.history[index];
@@ -84,6 +90,14 @@ class JourneyHistoryScreen extends ConsumerWidget {
                     }
                   },
                   onInspect: () => _inspectJourney(context, journey),
+                  onAnalyze: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => JourneyAnalysisScreen(journey: journey),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -116,15 +130,23 @@ class JourneyHistoryScreen extends ConsumerWidget {
 
     showModalBottomSheet<void>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (_, scrollController) => ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(20),
-          children: [
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final bottomInset = MediaQuery.of(ctx).padding.bottom;
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.75,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) => SafeArea(
+            top: false,
+            child: ListView(
+              controller: scrollController,
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 28 + bottomInset),
+              children: [
             Row(
               children: [
                 const Icon(Icons.folder_open, color: Color(0xff23695a)),
@@ -191,11 +213,13 @@ class JourneyHistoryScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 }
 
 class _JourneyCard extends StatelessWidget {
@@ -203,11 +227,13 @@ class _JourneyCard extends StatelessWidget {
     required this.journey,
     required this.onDelete,
     required this.onInspect,
+    required this.onAnalyze,
   });
 
   final JourneyMetadata journey;
   final VoidCallback onDelete;
   final VoidCallback onInspect;
+  final VoidCallback onAnalyze;
 
   String _formatDuration(int seconds) {
     final m = (seconds ~/ 60).toString().padLeft(2, '0');
@@ -271,10 +297,16 @@ class _JourneyCard extends StatelessWidget {
             children: [
               OutlinedButton.icon(
                 onPressed: onInspect,
-                icon: const Icon(Icons.visibility_outlined, size: 18),
-                label: const Text('Inspect'),
+                icon: const Icon(Icons.visibility_outlined, size: 16),
+                label: const Text('Files'),
               ),
               const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: onAnalyze,
+                icon: const Icon(Icons.analytics_outlined, size: 16),
+                label: const Text('Analyze (DR)'),
+              ),
+              const SizedBox(width: 4),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 tooltip: 'Delete',

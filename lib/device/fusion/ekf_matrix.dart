@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 /// Lightweight, self-contained Matrix class for Kalman Filter linear algebra.
 ///
 /// Designed for small matrices (e.g. 6x6, 6x5, 5x5) with zero external dependencies.

@@ -73,14 +73,14 @@ def load_journey_directory(journey_dir: str | Path, target_dt_sec: float = 0.1) 
     if not meta_file.exists():
         raise FileNotFoundError(f"Missing metadata.json in {journey_dir}")
 
-    with open(meta_file, "r", encoding="utf-8") as f:
+    with open(meta_file, "r", encoding="utf-8-sig") as f:
         metadata = json.load(f)
 
     # 1. Load CSVs
-    df_gps = pd.read_csv(path / "gps.csv")
-    df_acc = pd.read_csv(path / "accelerometer.csv")
-    df_gyr = pd.read_csv(path / "gyroscope.csv")
-    df_mag = pd.read_csv(path / "magnetometer.csv")
+    df_gps = pd.read_csv(path / "gps.csv", encoding="utf-8-sig")
+    df_acc = pd.read_csv(path / "accelerometer.csv", encoding="utf-8-sig")
+    df_gyr = pd.read_csv(path / "gyroscope.csv", encoding="utf-8-sig")
+    df_mag = pd.read_csv(path / "magnetometer.csv", encoding="utf-8-sig")
 
     # Clean empty strings / whitespace
     for df in [df_gps, df_acc, df_gyr, df_mag]:

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 /// On-device inference predictor for Phase 5 NavGuardian AI Drift Correction.
 ///
@@ -132,5 +131,40 @@ class AiDriftPredictor {
     final clampedDy = dy.clamp(-2.0, 2.0);
 
     return (deltaEastMeters: clampedDx, deltaNorthMeters: clampedDy);
+  }
+
+  /// Static helper method invoked during dead-reckoning blackout replay evaluation.
+  static ({double deltaXEast, double deltaYNorth}) predictResidualStepCorrection({
+    required double ax,
+    required double ay,
+    required double az,
+    required double gx,
+    required double gy,
+    required double gz,
+    required double ekfVx,
+    required double ekfVy,
+    required double ekfPsiRad,
+    required bool isStationary,
+  }) {
+    final accNorm = (ax * ax + ay * ay + az * az);
+    final gyroNorm = (gx * gx + gy * gy + gz * gz);
+    final ekfSpeed = (ekfVx * ekfVx + ekfVy * ekfVy);
+    final res = const AiDriftPredictor().predictCorrection(
+      ax: ax,
+      ay: ay,
+      az: az,
+      accNorm: accNorm > 0 ? (accNorm > 0 ? (ax.abs() + ay.abs() + az.abs()) : 0.0) : 0.0,
+      jerk: 0.0,
+      gx: gx,
+      gy: gy,
+      gz: gz,
+      gyroNorm: gyroNorm > 0 ? (gx.abs() + gy.abs() + gz.abs()) : 0.0,
+      ekfVx: ekfVx,
+      ekfVy: ekfVy,
+      ekfSpeed: ekfSpeed > 0 ? (ekfVx.abs() + ekfVy.abs()) : 0.0,
+      ekfHeadingRad: ekfPsiRad,
+      isStationary: isStationary,
+    );
+    return (deltaXEast: res.deltaEastMeters, deltaYNorth: res.deltaNorthMeters);
   }
 }

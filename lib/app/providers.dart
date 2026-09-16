@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../device/location/geolocator_service.dart';
 import '../device/sensors/phone_sensor_service.dart';
 import '../device/connectivity/connectivity_service.dart';
+import '../device/storage/journey_storage.dart';
+import '../device/recorder/journey_recording_service.dart';
+import '../features/journey/journey_controller.dart';
 import '../domain/telemetry.dart';
 
 final locationServiceProvider = Provider<LocationService>(
@@ -34,3 +37,21 @@ final clockProvider = StreamProvider.autoDispose<DateTime>(
     (_) => DateTime.now().toUtc(),
   ),
 );
+
+final journeyStorageProvider = Provider<JourneyStorage>(
+  (ref) => const JourneyStorage(),
+);
+
+final journeyRecordingServiceProvider = Provider<JourneyRecordingService>(
+  (ref) => JourneyRecordingService(
+    locationService: ref.watch(locationServiceProvider),
+    sensorService: ref.watch(sensorServiceProvider),
+    storage: ref.watch(journeyStorageProvider),
+  ),
+);
+
+final journeyControllerProvider =
+    NotifierProvider<JourneyController, JourneyState>(
+      JourneyController.new,
+    );
+

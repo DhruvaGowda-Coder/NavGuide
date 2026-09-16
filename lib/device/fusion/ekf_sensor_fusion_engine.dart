@@ -88,6 +88,10 @@ class EkfSensorFusionEngine implements NavigationEngine {
   double get currentLongitude => _estimateCurrentLon();
   double get currentHeadingDegrees => (_state[4] * (180.0 / math.pi) + 360.0) % 360.0;
   double get currentSpeedMps => math.sqrt(_state[2] * _state[2] + _state[3] * _state[3]);
+  double get velocityNorthMps => _state[2];
+  double get velocityEastMps => _state[3];
+  double get headingRad => _state[4];
+  bool get isStationary => _isStationary;
   double get estimatedGyroBiasDegPerSec => _state[5] * (180.0 / math.pi);
   double get positionStdDevMeters => math.sqrt(math.max(0.0, _cov.get(0, 0) + _cov.get(1, 1)));
 
@@ -190,14 +194,14 @@ class EkfSensorFusionEngine implements NavigationEngine {
     if (fix.speedMetersPerSecond != null && fix.headingDegrees != null) {
       final speed = fix.speedMetersPerSecond!;
       final headingRad = fix.headingDegrees! * (math.pi / 180.0);
-      final vN_gps = speed * math.cos(headingRad);
-      final vE_gps = speed * math.sin(headingRad);
+      final vnGps = speed * math.cos(headingRad);
+      final veGps = speed * math.sin(headingRad);
 
-      zList.add(vN_gps);
+      zList.add(vnGps);
       hRows.add([0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
       rDiag.add(0.64); // (0.8 m/s)^2
 
-      zList.add(vE_gps);
+      zList.add(veGps);
       hRows.add([0.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
       rDiag.add(0.64);
 
@@ -419,25 +423,25 @@ class EkfSensorFusionEngine implements NavigationEngine {
     }
 
     // S = H * P * H^T + R
-    final Ht = H.transpose();
-    final PHt = _cov.multiply(Ht);
-    final S = H.multiply(PHt).add(R);
+    final ht = H.transpose();
+    final pht = _cov.multiply(ht);
+    final S = H.multiply(pht).add(R);
 
     // K = P * H^T * inv(S)
     final invS = S.inverse();
-    final K = PHt.multiply(invS);
+    final K = pht.multiply(invS);
 
     // x = x + K * y
-    final Ky = K.multiplyVector(y);
+    final ky = K.multiplyVector(y);
     for (var i = 0; i < 6; i++) {
-      _state[i] += Ky[i];
+      _state[i] += ky[i];
     }
     _state[4] = _wrapAngle(_state[4]);
 
     // Joseph form: P = (I - K*H) * P * (I - K*H)^T + K * R * K^T
     final I = EkfMatrix.identity(6);
-    final I_KH = I.subtract(K.multiply(H));
-    final term1 = I_KH.multiply(_cov).multiply(I_KH.transpose());
+    final iKh = I.subtract(K.multiply(H));
+    final term1 = iKh.multiply(_cov).multiply(iKh.transpose());
     final term2 = K.multiply(R).multiply(K.transpose());
 
     _cov = term1.add(term2).makeSymmetric();
@@ -473,7 +477,6 @@ class EkfSensorFusionEngine implements NavigationEngine {
     return rad;
   }
 
-  @override
   GeoFix get currentEstimate => GeoFix(
         latitude: currentLatitude,
         longitude: currentLongitude,

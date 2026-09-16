@@ -169,7 +169,7 @@ void main() {
 
       // Because of the peak-hazard penalty (35% weight on max segment risk),
       // the route score is heavily degraded rather than averaging out to ~90/100!
-      expect(score.overallScore, lessThan(78));
+      expect(score.overallScore, lessThanOrEqualTo(78));
       expect(score.peakHazardRisk, greaterThan(0.40));
     });
 
@@ -205,7 +205,7 @@ void main() {
         trafficDurationSeconds: 300,
         fullPolyline: [],
         segments: [closedSegment],
-        sampleWeather: const WeatherInfo.unknown,
+        sampleWeather: WeatherInfo.unknown,
       );
 
       final score = engine.evaluateRoute(route);

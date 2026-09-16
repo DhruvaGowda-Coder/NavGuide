@@ -43,20 +43,14 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final report = CrowdsourcedHazardReport(
-      id: 'cs_${DateTime.now().millisecondsSinceEpoch}',
+    final report = await _hazardService.submitHazardReport(
       hazardType: _selectedType,
       description: description,
       latitude: widget.initialLatitude,
       longitude: widget.initialLongitude,
       roadName: widget.roadName,
-      reportedAt: DateTime.now(),
-      confirmationsCount: 1, // Author confirmation
-      rejectionsCount: 0,
       severity: _selectedSeverity,
     );
-
-    await _hazardService.submitHazardReport(report);
 
     if (!mounted) return;
 

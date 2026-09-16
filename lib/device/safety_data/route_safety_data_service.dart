@@ -1,10 +1,10 @@
-import 'dart:math' as math;
 import '../../domain/route_safety_models.dart';
 import 'accident_data_provider.dart';
 import 'flood_data_provider.dart';
 import 'road_condition_provider.dart';
 import 'route_provider.dart';
 import 'weather_provider.dart';
+import '../crowdsourcing/crowdsourced_hazard_service.dart';
 
 /// Master orchestration service for Phase 6 Real-World Safety Data Integration.
 ///
@@ -196,6 +196,9 @@ class RouteSafetyDataService {
           unknownFields.add('Road Surface Condition');
         }
 
+        final crowdsourcedHazards = CrowdsourcedHazardService.instance
+            .getHazardsAlongPolyline(step.polyline);
+
         segments.add(
           RoadSegmentData(
             segmentId: '${raw.routeId}_seg_$sIdx',
@@ -213,11 +216,15 @@ class RouteSafetyDataService {
             roadCondition: roadCond,
             construction: constrInfo,
             accident: accidentInfo,
+            crowdsourcedHazards: crowdsourcedHazards,
             isMockData: false,
             unknownFields: unknownFields,
           ),
         );
       }
+
+      final allRouteHazards = CrowdsourcedHazardService.instance
+          .getHazardsAlongPolyline(raw.fullPolyline);
 
       enrichedRoutes.add(
         NormalizedRouteData(
@@ -236,6 +243,7 @@ class RouteSafetyDataService {
           fullPolyline: raw.fullPolyline,
           segments: segments,
           sampleWeather: originWeather,
+          crowdsourcedHazards: allRouteHazards,
           isMockData: false,
         ),
       );

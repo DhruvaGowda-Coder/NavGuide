@@ -52,3 +52,4 @@ class GeolocatorService implements LocationService {
   @override
   Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
 }
+

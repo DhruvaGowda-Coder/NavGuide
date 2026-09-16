@@ -60,7 +60,9 @@ def main():
     print(f"    - Target Residual Y shape: {Y.shape}")
 
     # 3. Model Training
-    artifacts_dir = ml_root / "artifacts"
+    artifacts_dir = (ml_root / "artifacts").resolve()
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    (artifacts_dir / "plots").mkdir(parents=True, exist_ok=True)
     print(f"\n[3] Training AI Drift Correction Models (Output: {artifacts_dir})...")
     model_a, model_b, train_metrics = train_models(X, Y, output_dir=artifacts_dir, val_split_ratio=0.2)
 

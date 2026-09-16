@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'crowdsourced_hazard_models.dart';
 
 /// Levels of traffic congestion derived strictly from calculated delay ratio.
 enum CongestionLevel {
@@ -346,6 +347,7 @@ class RoadSegmentData {
     this.roadCondition = RoadConditionInfo.unknown,
     this.construction = ConstructionInfo.unknown,
     this.accident = AccidentRiskInfo.unknown,
+    this.crowdsourcedHazards = const [],
     DateTime? fetchTimestamp,
     this.isMockData = false,
     List<String>? unknownFields,
@@ -368,6 +370,7 @@ class RoadSegmentData {
   final RoadConditionInfo roadCondition;
   final ConstructionInfo construction;
   final AccidentRiskInfo accident;
+  final List<CrowdsourcedHazardReport> crowdsourcedHazards;
 
   final DateTime fetchTimestamp;
   final bool isMockData;
@@ -395,6 +398,7 @@ class NormalizedRouteData {
     required this.fullPolyline,
     required this.segments,
     required this.sampleWeather,
+    this.crowdsourcedHazards = const [],
     this.isMockData = false,
     DateTime? fetchTimestamp,
   })  : fetchTimestamp = fetchTimestamp ?? DateTime.now(),
@@ -423,6 +427,7 @@ class NormalizedRouteData {
   final List<({double lat, double lon})> fullPolyline;
   final List<RoadSegmentData> segments;
   final WeatherInfo sampleWeather;
+  final List<CrowdsourcedHazardReport> crowdsourcedHazards;
   final bool isMockData;
   final DateTime fetchTimestamp;
 

@@ -14,6 +14,7 @@ import '../../domain/safety_scoring_models.dart';
 import '../../domain/telemetry.dart';
 import '../crowdsourcing/hazard_report_screen.dart';
 import '../journey/journey_completion_report_screen.dart';
+import '../location/location_controller.dart';
 
 /// Live Turn-by-Turn Navigation Screen with Real-Time NavGuardian AI Dead Reckoning,
 /// simulated blackout presentation mode, and live crowdsourced hazard alerts.
@@ -119,8 +120,8 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     locationController.start();
 
     final locationService = ref.read(locationServiceProvider);
-    _gpsSub = locationService.positionStream.listen((fix) {
-      if (!mounted || fix == null) return;
+    _gpsSub = locationService.watch().listen((fix) {
+      if (!mounted) return;
       if (_isDemoSimulationMode) return; // Simulation mode drives progress instead
 
       if (!_isBlackoutSimulated) {

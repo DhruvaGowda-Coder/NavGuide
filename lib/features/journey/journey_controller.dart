@@ -31,6 +31,12 @@ class JourneyState {
 
   int get totalSamples => gpsCount + accelCount + gyroCount + magCount;
 
+  String get formattedDuration {
+    final m = (elapsed.inSeconds ~/ 60).toString().padLeft(2, '0');
+    final s = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   JourneyState copyWith({
     bool? isRecording,
     String? Function()? activeJourneyId,

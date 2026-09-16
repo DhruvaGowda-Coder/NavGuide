@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Discrete types of crowdsourced road hazards reported by the community.
 enum HazardType {
   pothole,

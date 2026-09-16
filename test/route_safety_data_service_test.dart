@@ -1,9 +1,11 @@
+// ignore_for_file: avoid_print
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navguardian_ai/device/safety_data/route_safety_data_service.dart';
-import 'package:navguardian_ai/domain/route_safety_models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = null;
 
   test('RouteSafetyDataService enriches real Bangalore corridor with safety data layer', () async {
     final service = RouteSafetyDataService();

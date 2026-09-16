@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import '../../domain/route_safety_models.dart';
 import '../../domain/safety_scoring_models.dart';
+import '../../domain/crowdsourced_hazard_models.dart';
 
 /// Scientific, multi-criteria safety evaluation and route ranking engine.
 class SafetyScoringEngine {
@@ -74,7 +75,14 @@ class SafetyScoringEngine {
 
     // 3. Flood Risk [0.0 - 1.0]
     double floodRisk = 0.0;
-    if (segment.flood.isHistoricalFloodProne) {
+    final isFloodUnknown = segment.flood.vulnerabilityRank == 'UNKNOWN' &&
+        segment.flood.category == FloodRiskCategory.unknown &&
+        !segment.flood.isHistoricalFloodProne;
+
+    if (isFloodUnknown) {
+      floodRisk = 0.25; // Unknown territory carries cautious baseline
+      unknownCount++;
+    } else if (segment.flood.isHistoricalFloodProne) {
       switch (segment.flood.vulnerabilityRank.toUpperCase()) {
         case 'SEVERE':
           floodRisk = 0.90;
@@ -104,6 +112,13 @@ class SafetyScoringEngine {
       if (segment.flood.vulnerabilityRank.toUpperCase() == 'SEVERE' && activeRain >= 4.0) {
         isCritical = true;
         criticalReason = 'Severe flood blackspot active under heavy rain ($spot)';
+      }
+    } else {
+      // Known to not be historically flood prone
+      floodRisk = 0.0;
+      final activeRain = w.rainfallMmPerHour ?? 0.0;
+      if (activeRain >= 20.0) {
+        floodRisk = 0.25; // Surface water accumulation from torrential rain
       }
     }
 
@@ -158,24 +173,29 @@ class SafetyScoringEngine {
 
     // 6. Accident Blackspot Risk [0.0 - 1.0]
     double accidentRisk = 0.0;
-    if (segment.accident.isHistoricalBlackspot) {
+    if (segment.accident.severity == AccidentSeverity.unknown) {
+      accidentRisk = 0.25; // Unknown accident history carries cautious baseline
+      unknownCount++;
+    } else if (segment.accident.isHistoricalBlackspot) {
       switch (segment.accident.severity) {
         case AccidentSeverity.critical:
-          accidentRisk = 0.90;
+          accidentRisk = 0.95;
           break;
         case AccidentSeverity.high:
-          accidentRisk = 0.70;
+          accidentRisk = 0.75;
           break;
         case AccidentSeverity.moderate:
           accidentRisk = 0.45;
           break;
         case AccidentSeverity.none:
+          accidentRisk = 0.0;
+          break;
         case AccidentSeverity.unknown:
-          accidentRisk = 0.20;
+          accidentRisk = 0.25;
           break;
       }
       final fatalCount = segment.accident.fatalitiesPast3Yr ?? 0;
-      accidentRisk = math.min(1.0, accidentRisk + 0.04 * math.min(5, fatalCount));
+      accidentRisk = math.min(1.0, accidentRisk + 0.05 * math.min(5, fatalCount));
       final spot = segment.accident.blackspotName ?? 'MoRTH Accident Blackspot';
       explanations.add('$spot (${segment.accident.severity.displayName})');
 
@@ -185,6 +205,47 @@ class SafetyScoringEngine {
         if (segment.accident.severity == AccidentSeverity.critical) {
           isCritical = true;
           criticalReason = 'Critical accident blackspot with active incident on ${segment.roadName}';
+        }
+      }
+    }
+
+    // 7. Community Crowdsourced Hazards Integration
+    if (segment.crowdsourcedHazards.isNotEmpty) {
+      for (final h in segment.crowdsourcedHazards) {
+        if (!h.isCommunityConfirmed && h.confirmationsCount < 1) continue;
+
+        final weight = h.hazardType.defaultRiskWeight * h.reliabilityScore;
+        switch (h.hazardType) {
+          case HazardType.roadBlocked:
+            isCritical = true;
+            criticalReason = 'Community confirmed road blockage on ${segment.roadName}';
+            explanations.add('ROAD BLOCKED: ${h.description} (${h.confirmationsCount} confirmations)');
+            constRisk = 1.0;
+            break;
+          case HazardType.flood:
+            floodRisk = math.max(floodRisk, math.min(1.0, floodRisk + weight));
+            explanations.add('Crowdsourced waterlogging: ${h.description} (${h.confirmationsCount} votes)');
+            if (h.severity == 'CRITICAL' && h.confirmationsCount >= 5) {
+              isCritical = true;
+              criticalReason = 'Critical flood hazard reported by community on ${segment.roadName}';
+            }
+            break;
+          case HazardType.pothole:
+          case HazardType.poorRoad:
+            surfaceRisk = math.max(surfaceRisk, math.min(1.0, surfaceRisk + weight * 0.7));
+            explanations.add('Crowdsourced hazard: ${h.description}');
+            break;
+          case HazardType.accident:
+            accidentRisk = math.max(accidentRisk, math.min(1.0, accidentRisk + weight * 0.8));
+            explanations.add('Crowdsourced incident: ${h.description}');
+            break;
+          case HazardType.construction:
+            constRisk = math.max(constRisk, math.min(1.0, constRisk + weight * 0.6));
+            explanations.add('Crowdsourced work zone: ${h.description}');
+            break;
+          case HazardType.other:
+            explanations.add('Community notice: ${h.description}');
+            break;
         }
       }
     }
@@ -298,16 +359,11 @@ class SafetyScoringEngine {
 
     // Peak-Hazard Integrated Risk formula:
     // Ensures a 10% death-trap cannot be hidden by 90% benign highway.
-    final integratedRisk = 0.65 * distanceWeightedMean + 0.35 * peakRisk;
+    final integratedRisk = 0.55 * distanceWeightedMean + 0.45 * peakRisk;
 
     // Base score (0-100)
     var overallScore = (math.max(0.0, 1.0 - integratedRisk) * 100.0).round();
 
-    // Critical Hazard Override penalty
-    if (hasCritical) {
-      overallScore = math.min(overallScore, 35);
-    }
-    overallScore = math.min(100, math.max(0, overallScore));
 
     // Data confidence calculation
     final confidenceScore = math.max(
@@ -325,6 +381,20 @@ class SafetyScoringEngine {
     } else if (confidenceScore < 0.80) {
       routeConfidence = DataConfidence.medium;
     }
+
+    // Uncertainty adjustment: route with low confidence cannot be declared completely safe
+    if (routeConfidence == DataConfidence.low) {
+      overallScore = math.min(overallScore, 68);
+    } else if (routeConfidence == DataConfidence.medium) {
+      overallScore = math.min(overallScore, 84);
+    }
+
+    // Critical Hazard Override penalty
+    if (hasCritical) {
+      overallScore = math.min(overallScore, 35);
+    }
+    overallScore = math.min(100, math.max(0, overallScore));
+
 
     // Recommendation Status
     RecommendationStatus status;

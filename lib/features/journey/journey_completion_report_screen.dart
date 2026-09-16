@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../device/crowdsourcing/crowdsourced_hazard_service.dart';
 import '../../domain/crowdsourced_hazard_models.dart';
-import '../../domain/route_safety_models.dart';
+import '../../domain/safety_scoring_models.dart';
 
 /// Comprehensive Journey Completion Report displaying route safety metrics,
 /// technical GPS-blackout estimation stats, and crowdsourced route rating feedback.
@@ -56,14 +56,21 @@ class _JourneyCompletionReportScreenState
   }
 
   void _submitFeedback() {
+    final perceivedSafety = _selectedStars >= 4
+        ? 'SAFE'
+        : (_selectedStars == 3 ? 'MODERATE' : 'DANGEROUS');
+
+    final tags = _selectedFeedbackTags.join(', ');
+    final fullNote = _commentController.text.trim().isNotEmpty
+        ? '${_commentController.text.trim()}${tags.isNotEmpty ? " (Tags: $tags)" : ""}'
+        : (tags.isNotEmpty ? 'Tags: $tags' : 'Completed journey');
+
     final feedback = RouteRatingFeedback(
-      id: 'fb_${DateTime.now().millisecondsSinceEpoch}',
-      routeId: widget.selectedRoute.routeId,
-      starRating: _selectedStars,
-      feedbackComment: _commentController.text.trim(),
-      selectedTags: _selectedFeedbackTags.toList(),
-      timestamp: DateTime.now(),
-      distanceKm: widget.totalDistanceKm,
+      routeId: widget.selectedRoute.route.routeId,
+      ratingStars: _selectedStars,
+      perceivedSafety: perceivedSafety,
+      feedbackNote: fullNote,
+      submittedAt: DateTime.now(),
     );
 
     CrowdsourcedHazardService.instance.submitRouteRating(feedback);

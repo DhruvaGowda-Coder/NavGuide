@@ -38,9 +38,13 @@ void main() {
     print('Hidden GPS points: ${res10.hiddenGpsPointsCount}');
     print('Basic DR (P3) Endpoint Error: ${res10.endpointErrorMeters.toStringAsFixed(2)} m');
     print('EKF Fusion (P4) Endpoint Error: ${res10.ekfEndpointErrorMeters.toStringAsFixed(2)} m');
+    print('AI Drift (P5) Endpoint Error: ${res10.aiEndpointErrorMeters.toStringAsFixed(2)} m');
     print('Basic DR RMSE: ${res10.rmseMeters.toStringAsFixed(2)} m');
     print('EKF Fusion RMSE: ${res10.ekfRmseMeters.toStringAsFixed(2)} m');
-    print('RMSE Improvement: ${res10.rmseImprovementPercent.toStringAsFixed(1)}%');
+    print('AI Drift RMSE: ${res10.aiRmseMeters.toStringAsFixed(2)} m');
+    print('EKF vs DR RMSE Improvement: ${res10.rmseImprovementPercent.toStringAsFixed(1)}%');
+    print('AI vs DR RMSE Improvement: ${res10.aiRmseImprovementPercentVsDr.toStringAsFixed(1)}%');
+    print('AI vs EKF RMSE Improvement: ${res10.aiRmseImprovementPercentVsEkf.toStringAsFixed(1)}%');
     print('EKF Gyro Bias Estimate: ${res10.ekfDiagnostics.gyroBiasDegPerSec.toStringAsFixed(3)} °/s');
     print('EKF Pos Uncertainty (σ): ${res10.ekfDiagnostics.positionStdDevMeters.toStringAsFixed(2)} m');
     print('Magnetometer Anomalies: ${res10.ekfDiagnostics.magAnomaliesCount}');
@@ -57,15 +61,21 @@ void main() {
     print('Hidden GPS points: ${resMax.hiddenGpsPointsCount}');
     print('Basic DR (P3) Endpoint Error: ${resMax.endpointErrorMeters.toStringAsFixed(2)} m');
     print('EKF Fusion (P4) Endpoint Error: ${resMax.ekfEndpointErrorMeters.toStringAsFixed(2)} m');
+    print('AI Drift (P5) Endpoint Error: ${resMax.aiEndpointErrorMeters.toStringAsFixed(2)} m');
     print('Basic DR RMSE: ${resMax.rmseMeters.toStringAsFixed(2)} m');
     print('EKF Fusion RMSE: ${resMax.ekfRmseMeters.toStringAsFixed(2)} m');
-    print('RMSE Improvement: ${resMax.rmseImprovementPercent.toStringAsFixed(1)}%');
+    print('AI Drift RMSE: ${resMax.aiRmseMeters.toStringAsFixed(2)} m');
+    print('EKF vs DR RMSE Improvement: ${resMax.rmseImprovementPercent.toStringAsFixed(1)}%');
+    print('AI vs DR RMSE Improvement: ${resMax.aiRmseImprovementPercentVsDr.toStringAsFixed(1)}%');
+    print('AI vs EKF RMSE Improvement: ${resMax.aiRmseImprovementPercentVsEkf.toStringAsFixed(1)}%');
     print('EKF Pos Uncertainty (σ): ${resMax.ekfDiagnostics.positionStdDevMeters.toStringAsFixed(2)} m');
     print('===================================================================\n');
 
     expect(res10.endpointErrorMeters, isNonNegative);
     expect(res10.ekfEndpointErrorMeters, isNonNegative);
+    expect(res10.aiEndpointErrorMeters, isNonNegative);
     expect(resMax.endpointErrorMeters, isNonNegative);
     expect(resMax.ekfEndpointErrorMeters, isNonNegative);
+    expect(resMax.aiEndpointErrorMeters, isNonNegative);
   });
 }
