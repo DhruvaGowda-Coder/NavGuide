@@ -26,16 +26,17 @@ class _DestinationSearchScreenState
   List<PlaceResult> _placeSuggestions = [];
 
   final List<String> _quickChips = [
-    'Gavanahalli',
+    'Gavenahalli (Hassan)',
+    'Gavanahalli (Chikkamagaluru)',
+    'Hassan',
+    'Sakleshpur',
+    'Chikkamagaluru',
     'Airport (BLR)',
     'Indiranagar',
     'Koramangala',
-    'Chikkamagaluru',
     'Mysuru Palace',
     'Whitefield',
     'Electronic City',
-    'Mumbai',
-    'Delhi',
   ];
 
   @override

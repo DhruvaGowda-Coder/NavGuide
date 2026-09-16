@@ -23,21 +23,59 @@ class PlaceSearchService {
 
   final HttpClient _client;
 
-  // Curated prominent Karnataka & All-India destinations for instant 0ms offline search
+  // Curated prominent Karnataka (Hassan, Chikkamagaluru, Bangalore, etc.) & All-India destinations for instant 0ms offline search
   static const List<PlaceResult> popularIndianPlaces = [
+    // Hassan District Places
     PlaceResult(
-      name: 'Gavanahalli',
-      address: 'Chikkamagaluru taluku, Karnataka, 577142',
-      latitude: 13.2919,
-      longitude: 75.7558,
-      category: 'Hometown / Village',
+      name: 'Gavenahalli (Hassan)',
+      address: 'Hasana taluk, Hassan District, Karnataka, 573201',
+      latitude: 13.0000,
+      longitude: 76.1252,
+      category: 'Village / Hometown (Hassan)',
     ),
     PlaceResult(
-      name: 'Devanahalli',
-      address: 'Bengaluru North / Rural, Karnataka',
-      latitude: 13.2483,
-      longitude: 77.7126,
-      category: 'Historic Town',
+      name: 'Hassan City Central',
+      address: 'Hassan City, Hassan District, Karnataka',
+      latitude: 13.0072,
+      longitude: 76.0965,
+      category: 'District Headquarters',
+    ),
+    PlaceResult(
+      name: 'Sakleshpur (Western Ghats)',
+      address: 'Hassan District, Karnataka',
+      latitude: 12.9439,
+      longitude: 75.7877,
+      category: 'Hill Station / Plantation Hub',
+    ),
+    PlaceResult(
+      name: 'Belur Chennakeshava Temple',
+      address: 'Belur, Hassan District, Karnataka',
+      latitude: 13.1623,
+      longitude: 75.8596,
+      category: 'Hoysala Heritage',
+    ),
+    PlaceResult(
+      name: 'Halebeedu Hoysaleshwara',
+      address: 'Hassan District, Karnataka',
+      latitude: 13.2136,
+      longitude: 75.9936,
+      category: 'Heritage Landmark',
+    ),
+    PlaceResult(
+      name: 'Channarayapatna / Shravanabelagola',
+      address: 'Hassan District, Karnataka',
+      latitude: 12.9066,
+      longitude: 76.3926,
+      category: 'Heritage & Transit Hub',
+    ),
+
+    // Chikkamagaluru District Places
+    PlaceResult(
+      name: 'Gavanahalli (Chikkamagaluru)',
+      address: 'Chikkamagaluru taluku, Chikkamagaluru, Karnataka, 577142',
+      latitude: 13.2919,
+      longitude: 75.7558,
+      category: 'Village (Chikkamagaluru)',
     ),
     PlaceResult(
       name: 'Chikkamagaluru Town',
@@ -47,11 +85,55 @@ class PlaceSearchService {
       category: 'Coffee Land / Hill Station',
     ),
     PlaceResult(
+      name: 'Mullayanagiri Peak',
+      address: 'Chikkamagaluru, Karnataka',
+      latitude: 13.3916,
+      longitude: 75.7214,
+      category: 'Highest Peak in Karnataka',
+    ),
+
+    // Bengaluru & Major Karnataka Centers
+    PlaceResult(
+      name: 'Devanahalli',
+      address: 'Bengaluru North / Rural, Karnataka',
+      latitude: 13.2483,
+      longitude: 77.7126,
+      category: 'Historic Town',
+    ),
+    PlaceResult(
       name: 'Kempegowda International Airport (BLR)',
       address: 'KIAL Rd, Devanahalli, Bengaluru',
       latitude: 13.1986,
       longitude: 77.7066,
       category: 'Airport',
+    ),
+    PlaceResult(
+      name: 'Mysuru Palace',
+      address: 'Sayyaji Rao Road, Mysuru, Karnataka',
+      latitude: 12.3051,
+      longitude: 76.6551,
+      category: 'Heritage Palace',
+    ),
+    PlaceResult(
+      name: 'Mangaluru Coastal Port',
+      address: 'Dakshina Kannada, Karnataka',
+      latitude: 12.9141,
+      longitude: 74.8560,
+      category: 'Coastal Port City',
+    ),
+    PlaceResult(
+      name: 'Shivamogga (Gateway to Malnad)',
+      address: 'Shivamogga District, Karnataka',
+      latitude: 13.9299,
+      longitude: 75.5681,
+      category: 'Malnad Gateway',
+    ),
+    PlaceResult(
+      name: 'Hubballi - Dharwad',
+      address: 'Hubballi Junction, North Karnataka',
+      latitude: 15.3647,
+      longitude: 75.1240,
+      category: 'Commercial Hub',
     ),
     PlaceResult(
       name: 'MG Road Metro & Brigade Road',
@@ -88,76 +170,8 @@ class PlaceSearchService {
       longitude: 77.6602,
       category: 'IT Hub',
     ),
-    PlaceResult(
-      name: 'Mysuru Palace',
-      address: 'Sayyaji Rao Road, Mysuru, Karnataka',
-      latitude: 12.3051,
-      longitude: 76.6551,
-      category: 'Heritage Hub',
-    ),
-    PlaceResult(
-      name: 'Mangaluru Coastal Port',
-      address: 'Dakshina Kannada, Karnataka',
-      latitude: 12.9141,
-      longitude: 74.8560,
-      category: 'Coastal Port City',
-    ),
-    PlaceResult(
-      name: 'Hubballi - Dharwad',
-      address: 'Hubballi Junction, North Karnataka',
-      latitude: 15.3647,
-      longitude: 75.1240,
-      category: 'Commercial Hub',
-    ),
-    PlaceResult(
-      name: 'Silk Board Junction',
-      address: 'Central Silk Board, Hosur Road, Bengaluru',
-      latitude: 12.9177,
-      longitude: 77.6238,
-      category: 'Transit Junction',
-    ),
-    PlaceResult(
-      name: 'Majestic (KSR Railway Station)',
-      address: 'Kempegowda Bus Station, Majestic, Bengaluru',
-      latitude: 12.9778,
-      longitude: 77.5713,
-      category: 'Transit Hub',
-    ),
-    PlaceResult(
-      name: 'Hebbal Flyover Junction',
-      address: 'Bellary Road, Hebbal, North Bengaluru',
-      latitude: 13.0358,
-      longitude: 77.5970,
-      category: 'North Gateway',
-    ),
-    PlaceResult(
-      name: 'Manyata Tech Park',
-      address: 'Outer Ring Road, Nagavara, Bengaluru',
-      latitude: 13.0478,
-      longitude: 77.6200,
-      category: 'IT Park',
-    ),
-    PlaceResult(
-      name: 'Jayanagar 4th Block Complex',
-      address: 'Jayanagar, South Bengaluru',
-      latitude: 12.9298,
-      longitude: 77.5833,
-      category: 'Market & Residential',
-    ),
-    PlaceResult(
-      name: 'Malleshwaram 8th Cross',
-      address: 'Sampige Road, Malleshwaram, Bengaluru',
-      latitude: 13.0031,
-      longitude: 77.5707,
-      category: 'Heritage Market',
-    ),
-    PlaceResult(
-      name: 'HSR Layout Sector 1',
-      address: 'HSR Layout, Southeast Bengaluru',
-      latitude: 12.9121,
-      longitude: 77.6446,
-      category: 'Residential & Startups',
-    ),
+
+    // National Metros & Landmarks
     PlaceResult(
       name: 'Marine Drive',
       address: 'Netaji Subhash Chandra Bose Road, Mumbai, Maharashtra',
@@ -179,118 +193,143 @@ class PlaceSearchService {
       longitude: 78.3762,
       category: 'Tech City',
     ),
-    PlaceResult(
-      name: 'Marina Beach',
-      address: 'Kamarajar Salai, Chennai, Tamil Nadu',
-      latitude: 13.0500,
-      longitude: 80.2824,
-      category: 'Coastal City',
-    ),
   ];
 
   // Backward compatibility alias
   static List<PlaceResult> get popularBangalorePlaces => popularIndianPlaces;
 
-  // Common spelling typos / phonetic normalizations
-  static const Map<String, String> _aliases = {
-    'gaveanhhili': 'gavanahalli',
-    'gaveanhalli': 'gavanahalli',
-    'gavanahilli': 'gavanahalli',
-    'gavanahaly': 'gavanahalli',
-    'gavanhalli': 'gavanahalli',
-    'devanhalli': 'devanahalli',
-    'devanahilli': 'devanahalli',
-    'chikmagalur': 'chikkamagaluru',
-    'chikmagalur town': 'chikkamagaluru',
-    'chickmagalur': 'chikkamagaluru',
-    'blr': 'kempegowda international airport',
-    'airport': 'kempegowda international airport',
-    'itpl': 'whitefield',
-    'ecity': 'electronic city',
-    'cp': 'connaught place',
-  };
+  /// Generates spelling and district variants for search queries
+  List<String> _expandQueryVariants(String query) {
+    final clean = query.trim().toLowerCase();
+    final variants = <String>[clean];
+
+    // Handles user phonetic variations for Gavenahalli / Gavanahalli
+    if (clean.contains('gaven') || clean.contains('gavan') || clean.contains('gavean')) {
+      variants.add('gavenahalli');
+      variants.add('gavenahalli hassan');
+      variants.add('gavanahalli');
+      variants.add('gavanahalli chikkamagaluru');
+    }
+
+    if (clean.contains('chikmag') || clean.contains('chickmag')) {
+      variants.add('chikkamagaluru');
+    }
+
+    if (clean.contains('hasan') && !clean.contains('hassan')) {
+      variants.add('hassan');
+    }
+
+    if (clean == 'blr' || clean == 'airport') {
+      variants.add('kempegowda international airport');
+    }
+
+    return variants.toSet().toList();
+  }
 
   /// Search places matching query across ALL OF INDIA via local instant index + OpenStreetMap live lookup
   Future<List<PlaceResult>> searchPlaces(String query) async {
-    var clean = query.trim().toLowerCase();
+    final clean = query.trim().toLowerCase();
     if (clean.isEmpty) return popularIndianPlaces;
 
-    // Check alias normalization (handles user typos like "gaveanhhili" -> "gavanahalli")
-    final normalized = _aliases[clean] ?? clean;
+    final variants = _expandQueryVariants(query);
 
-    // 1. First search local offline database
+    // 1. First search local offline database against all variants
     final localMatches = popularIndianPlaces.where((p) {
       final n = p.name.toLowerCase();
       final a = p.address.toLowerCase();
       final c = p.category.toLowerCase();
-      return n.contains(clean) ||
-          a.contains(clean) ||
-          c.contains(clean) ||
-          n.contains(normalized) ||
-          a.contains(normalized);
-    }).toList();
 
-    // 2. Query OpenStreetMap Nominatim across ALL OF INDIA
-    try {
-      final effectiveQuery = normalized;
-      final encoded = Uri.encodeComponent(effectiveQuery);
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=$encoded&format=json&addressdetails=1&limit=8&countrycodes=in',
-      );
-
-      final req = await _client.getUrl(uri).timeout(const Duration(seconds: 4));
-      req.headers.set('User-Agent', 'NavGuardianAI-FlutterApp/1.0 (navguardian.ai)');
-      final res = await req.close().timeout(const Duration(seconds: 4));
-
-      if (res.statusCode == 200) {
-        final body = await res.transform(utf8.decoder).join();
-        final list = jsonDecode(body) as List<dynamic>;
-
-        final apiResults = <PlaceResult>[];
-        for (final item in list) {
-          final map = item as Map<String, dynamic>;
-          final displayName = map['display_name'] as String? ?? '';
-          final parts = displayName.split(',');
-          final title = parts.isNotEmpty ? parts[0].trim() : displayName;
-          final subtitle = parts.length > 1
-              ? parts.sublist(1, math.min(5, parts.length)).join(',').trim()
-              : displayName;
-          final lat = double.tryParse(map['lat']?.toString() ?? '');
-          final lon = double.tryParse(map['lon']?.toString() ?? '');
-
-          if (lat != null && lon != null) {
-            apiResults.add(
-              PlaceResult(
-                name: title,
-                address: subtitle,
-                latitude: lat,
-                longitude: lon,
-                category: _formatCategory(map['type']?.toString(), map['addresstype']?.toString()),
-              ),
-            );
-          }
-        }
-
-        // Merge without duplicates
-        final existingNames = localMatches.map((e) => e.name.toLowerCase()).toSet();
-        for (final r in apiResults) {
-          if (!existingNames.contains(r.name.toLowerCase())) {
-            localMatches.add(r);
-          }
+      for (final v in variants) {
+        if (n.contains(v) || a.contains(v) || c.contains(v)) {
+          return true;
         }
       }
-    } catch (_) {
-      // Offline fallback to local matches
+      return false;
+    }).toList();
+
+    // 2. Query OpenStreetMap Nominatim across ALL OF INDIA for the variants
+    final apiResults = <PlaceResult>[];
+    final queriedUrls = <String>{};
+
+    // We query up to 2 primary variants concurrently to ensure lightning fast response
+    final queriesToRun = variants.take(2).toList();
+
+    await Future.wait(
+      queriesToRun.map((v) async {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(v)}&format=json&addressdetails=1&limit=6&countrycodes=in',
+        );
+
+        if (queriedUrls.contains(uri.toString())) return;
+        queriedUrls.add(uri.toString());
+
+        try {
+          final req = await _client.getUrl(uri).timeout(const Duration(seconds: 4));
+          req.headers.set('User-Agent', 'NavGuardianAI-FlutterApp/1.0 (navguardian.ai)');
+          final res = await req.close().timeout(const Duration(seconds: 4));
+
+          if (res.statusCode == 200) {
+            final body = await res.transform(utf8.decoder).join();
+            final list = jsonDecode(body) as List<dynamic>;
+
+            for (final item in list) {
+              final map = item as Map<String, dynamic>;
+              final displayName = map['display_name'] as String? ?? '';
+              final parts = displayName.split(',');
+              final title = parts.isNotEmpty ? parts[0].trim() : displayName;
+              final subtitle = parts.length > 1
+                  ? parts.sublist(1, math.min(5, parts.length)).join(',').trim()
+                  : displayName;
+              final lat = double.tryParse(map['lat']?.toString() ?? '');
+              final lon = double.tryParse(map['lon']?.toString() ?? '');
+
+              if (lat != null && lon != null) {
+                // Extract district/taluk to make location crystal clear
+                final addressMap = map['address'] as Map<String, dynamic>?;
+                final district = addressMap?['state_district'] ?? addressMap?['county'] ?? '';
+                final state = addressMap?['state'] ?? 'India';
+                final refinedTitle = district.toString().isNotEmpty && !title.toLowerCase().contains(district.toString().toLowerCase())
+                    ? '$title ($district)'
+                    : title;
+
+                apiResults.add(
+                  PlaceResult(
+                    name: refinedTitle,
+                    address: subtitle.isNotEmpty ? subtitle : '$district, $state',
+                    latitude: lat,
+                    longitude: lon,
+                    category: _formatCategory(map['type']?.toString(), map['addresstype']?.toString()),
+                  ),
+                );
+              }
+            }
+          }
+        } catch (_) {
+          // Network timeout or offline, gracefully continue
+        }
+      }),
+    );
+
+    // Merge offline matches + live API results without duplicate coordinates
+    final allResults = <PlaceResult>[...localMatches];
+    final seenCoords = localMatches.map((e) => '${e.latitude.toStringAsFixed(3)},${e.longitude.toStringAsFixed(3)}').toSet();
+
+    for (final r in apiResults) {
+      final key = '${r.latitude.toStringAsFixed(3)},${r.longitude.toStringAsFixed(3)}';
+      if (!seenCoords.contains(key)) {
+        seenCoords.add(key);
+        allResults.add(r);
+      }
     }
 
-    return localMatches;
+    return allResults;
   }
 
   static String _formatCategory(String? type, String? addressType) {
     final raw = (addressType ?? type ?? 'location').toLowerCase();
     switch (raw) {
       case 'village':
-        return 'Village / Hometown';
+        return 'Village / Rural';
       case 'town':
         return 'Town';
       case 'city':
@@ -304,6 +343,8 @@ class PlaceSearchService {
       case 'station':
       case 'railway_station':
         return 'Railway Station';
+      case 'bus_stop':
+        return 'Bus Stop / Transit';
       default:
         return raw.substring(0, 1).toUpperCase() + raw.substring(1);
     }
