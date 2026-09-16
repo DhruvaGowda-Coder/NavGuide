@@ -48,8 +48,13 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
 
   // Blackout simulation state for presentations
   bool _isBlackoutSimulated = false;
+  bool _isAutoBlackoutActive = false;
   DateTime? _blackoutStartTime;
+  DateTime _lastGpsFixTime = DateTime.now();
   double _accumulatedBlackoutSeconds = 0.0;
+  Timer? _gpsWatchdogTimer;
+
+  bool get _isBlackoutEngaged => _isBlackoutSimulated || _isAutoBlackoutActive;
 
   // On-device Dead Reckoning & AI Engines
   final _ekfEngine = EkfSensorFusionEngine();
@@ -106,6 +111,22 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     _initEngines();
     _subscribeSensors();
     _subscribeRealGps();
+    _startGpsWatchdog();
+  }
+
+  void _startGpsWatchdog() {
+    _gpsWatchdogTimer?.cancel();
+    _gpsWatchdogTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+      if (!mounted || _isDemoSimulationMode) return;
+      final elapsed = DateTime.now().difference(_lastGpsFixTime).inMilliseconds / 1000.0;
+      if (elapsed >= 3.5 && !_isAutoBlackoutActive) {
+        // Automatic GPS Loss detected!
+        setState(() {
+          _isAutoBlackoutActive = true;
+          _blackoutStartTime ??= DateTime.now();
+        });
+      }
+    });
   }
 
   void _initEngines() {
@@ -131,11 +152,18 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       if (!mounted) return;
       if (_isDemoSimulationMode) return; // Simulation mode drives progress instead
 
-      if (!_isBlackoutSimulated) {
+      _lastGpsFixTime = DateTime.now();
+      if (_isAutoBlackoutActive) {
+        setState(() {
+          _isAutoBlackoutActive = false;
+        });
+      }
+
+      if (!_isBlackoutEngaged) {
         setState(() {
           _currentPosition = LatLng(fix.latitude, fix.longitude);
           if (fix.headingDegrees != null && fix.headingDegrees! >= 0) {
-            _currentHeading = fix.headingDegrees!;
+            _currentHeading = _smoothHeading(_currentHeading, fix.headingDegrees!);
           }
           _currentSpeedKmh = (fix.speedMetersPerSecond ?? 0.0) * 3.6;
         });
@@ -176,7 +204,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       _lastAy = sample.y;
       _lastAz = sample.z;
 
-      if (_isBlackoutSimulated) {
+      if (_isBlackoutEngaged) {
         final dtSinceAi = _prevAiStepMicros > 0
             ? (sample.monotonicMicroseconds - _prevAiStepMicros) / 1000000.0
             : 0.1;
@@ -241,6 +269,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     });
 
     _simulatedProgressTimer?.cancel();
+    _gpsWatchdogTimer?.cancel();
     if (enableSim) {
       _simulatedProgressTimer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
         if (!mounted) return;
@@ -249,7 +278,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
           _targetPolylineIndex++;
           final nextTarget = _routePolylinePoints[_targetPolylineIndex];
 
-          if (!_isBlackoutSimulated) {
+          if (!_isBlackoutEngaged) {
             final bearing = _calculateBearing(_currentPosition, nextTarget);
             setState(() {
               _currentPosition = nextTarget;
@@ -341,6 +370,13 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     );
   }
 
+  double _smoothHeading(double current, double target) {
+    var diff = (target - current) % 360.0;
+    if (diff > 180.0) diff -= 360.0;
+    if (diff < -180.0) diff += 360.0;
+    return (current + diff * 0.35) % 360.0;
+  }
+
   double _calculateBearing(LatLng start, LatLng end) {
     final startLat = start.latitude * (math.pi / 180.0);
     final startLon = start.longitude * (math.pi / 180.0);
@@ -389,6 +425,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
 
   void _endJourney() {
     _simulatedProgressTimer?.cancel();
+    _gpsWatchdogTimer?.cancel();
     _gpsSub?.cancel();
     _accelSub?.cancel();
     _gyroSub?.cancel();
@@ -436,6 +473,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   @override
   void dispose() {
     _simulatedProgressTimer?.cancel();
+    _gpsWatchdogTimer?.cancel();
     _gpsSub?.cancel();
     _accelSub?.cancel();
     _gyroSub?.cancel();
@@ -478,7 +516,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                 anchor: const Offset(0.5, 0.5),
                 flat: true,
                 icon: BitmapDescriptor.defaultMarkerWithHue(
-                  _isBlackoutSimulated ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure,
+                  _isBlackoutEngaged ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure,
                 ),
               ),
               // Upcoming hazard markers along corridor
@@ -577,30 +615,18 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
               ),
             ),
 
-          // 6. Floating Action Buttons (Recenter & Quick Report)
+          // 6. Floating Recenter Button
           Positioned(
             right: 16,
             bottom: 130 + bottomInset,
-            child: Column(
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'recenter_btn',
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xff23695a),
-                  onPressed: _centerMapOnVehicle,
-                  tooltip: 'Center on Vehicle',
-                  child: const Icon(Icons.my_location),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'report_hazard_btn',
-                  backgroundColor: const Color(0xffb71c1c),
-                  foregroundColor: Colors.white,
-                  onPressed: _openQuickReportModal,
-                  tooltip: 'Quick Report Hazard',
-                  child: const Icon(Icons.add_alert_rounded),
-                ),
-              ],
+            child: FloatingActionButton.small(
+              heroTag: 'recenter_btn',
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xff23695a),
+              onPressed: _centerMapOnVehicle,
+              tooltip: 'Center on Vehicle',
+              elevation: 4,
+              child: const Icon(Icons.my_location),
             ),
           ),
 
@@ -681,6 +707,11 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                 ),
               ),
               IconButton(
+                icon: const Icon(Icons.warning_amber_rounded, color: Colors.white70),
+                tooltip: 'Report Road Hazard',
+                onPressed: _openQuickReportModal,
+              ),
+              IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 tooltip: 'Exit Navigation',
                 onPressed: () {
@@ -743,7 +774,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   }
 
   Widget _buildDynamicStatusBadge() {
-    if (!_isBlackoutSimulated) {
+    if (!_isBlackoutEngaged) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -943,10 +974,10 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _isBlackoutSimulated ? Colors.red.shade50 : Colors.grey.shade100,
+                    color: _isBlackoutEngaged ? Colors.red.shade50 : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _isBlackoutSimulated ? Colors.red.shade300 : Colors.grey.shade300,
+                      color: _isBlackoutEngaged ? Colors.red.shade300 : Colors.grey.shade300,
                     ),
                   ),
                   child: Row(
@@ -957,7 +988,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                           Icon(
                             Icons.sensors_off_rounded,
                             size: 16,
-                            color: _isBlackoutSimulated ? Colors.red.shade800 : Colors.grey.shade700,
+                            color: _isBlackoutEngaged ? Colors.red.shade800 : Colors.grey.shade700,
                           ),
                           const SizedBox(width: 6),
                           Column(
@@ -969,7 +1000,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: _isBlackoutSimulated ? Colors.red.shade900 : Colors.black87,
+                                  color: _isBlackoutEngaged ? Colors.red.shade900 : Colors.black87,
                                 ),
                               ),
                               Text(
