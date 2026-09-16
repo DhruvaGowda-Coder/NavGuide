@@ -1,0 +1,128 @@
+{
+  "source": "Ministry of Road Transport and Highways (MoRTH) & Karnataka Traffic Police Blackspot Audit",
+  "dataset_version": "2026.1",
+  "region": "Karnataka, India",
+  "description": "Catalog of officially identified high-fatality and severe injury road accident blackspots in Bangalore metropolitan region.",
+  "accident_blackspots": [
+    {
+      "id": "blr_acc_01",
+      "name": "Hosur Road - Kudlu Gate Junction",
+      "latitude": 12.8905,
+      "longitude": 77.6435,
+      "buffer_radius_meters": 250,
+      "historical_severity": "CRITICAL",
+      "fatalities_past_3yr": 18,
+      "road_name": "NH-44 (Hosur Road)",
+      "junction_type": "Signalized Highway Intersection",
+      "risk_factors": "High vehicle speeds, mixed pedestrian crossing, heavy commercial traffic"
+    },
+    {
+      "id": "blr_acc_02",
+      "name": "Hosur Road - Bommanahalli Junction",
+      "latitude": 12.9080,
+      "longitude": 77.6250,
+      "buffer_radius_meters": 250,
+      "historical_severity": "CRITICAL",
+      "fatalities_past_3yr": 15,
+      "road_name": "NH-44 (Hosur Road)",
+      "junction_type": "Multi-arm Arterial Junction",
+      "risk_factors": "Bottleneck entry to Silk Board, bus stop lane weaving"
+    },
+    {
+      "id": "blr_acc_03",
+      "name": "Outer Ring Road - Marathahalli Bridge",
+      "latitude": 12.9560,
+      "longitude": 77.7010,
+      "buffer_radius_meters": 300,
+      "historical_severity": "HIGH",
+      "fatalities_past_3yr": 12,
+      "road_name": "Outer Ring Road (ORR)",
+      "junction_type": "Grade Separator Interchange",
+      "risk_factors": "Weaving conflict between Old Airport Road and ORR fast lanes"
+    },
+    {
+      "id": "blr_acc_04",
+      "name": "Outer Ring Road - Bellandur Junction",
+      "latitude": 12.9320,
+      "longitude": 77.6740,
+      "buffer_radius_meters": 250,
+      "historical_severity": "HIGH",
+      "fatalities_past_3yr": 11,
+      "road_name": "Outer Ring Road (ORR)",
+      "junction_type": "Tech Park Arterial Entry",
+      "risk_factors": "Two-wheeler heavy pedestrian conflict, rapid lane switching"
+    },
+    {
+      "id": "blr_acc_05",
+      "name": "Tumkur Road - Goraguntepalya Junction",
+      "latitude": 13.0285,
+      "longitude": 77.5410,
+      "buffer_radius_meters": 300,
+      "historical_severity": "CRITICAL",
+      "fatalities_past_3yr": 22,
+      "road_name": "NH-48 (Tumkur Road Expressway)",
+      "junction_type": "Flyover Ramp & Ring Road Confluence",
+      "risk_factors": "Heavy multi-axle freight trucks, elevated flyover blind merge"
+    },
+    {
+      "id": "blr_acc_06",
+      "name": "Old Madras Road - Tin Factory / KR Puram",
+      "latitude": 12.9995,
+      "longitude": 77.6750,
+      "buffer_radius_meters": 300,
+      "historical_severity": "CRITICAL",
+      "fatalities_past_3yr": 19,
+      "road_name": "Old Madras Road (NH-75)",
+      "junction_type": "Hanging Bridge & Railway Underpass",
+      "risk_factors": "High volume bottleneck, conflicting bus passenger movement"
+    },
+    {
+      "id": "blr_acc_07",
+      "name": "Mysore Road - Kengeri Bus Terminal",
+      "latitude": 12.9110,
+      "longitude": 77.4850,
+      "buffer_radius_meters": 300,
+      "historical_severity": "HIGH",
+      "fatalities_past_3yr": 14,
+      "road_name": "Mysore Road (SH-17 / NH-275)",
+      "junction_type": "Transit Hub Junction",
+      "risk_factors": "Intense suburban bus departures, high crossing pedestrian flow"
+    },
+    {
+      "id": "blr_acc_08",
+      "name": "Bellary Road - Hebbal Flyover Ingress",
+      "latitude": 13.0335,
+      "longitude": 77.5925,
+      "buffer_radius_meters": 250,
+      "historical_severity": "HIGH",
+      "fatalities_past_3yr": 10,
+      "road_name": "Bellary Road (NH-44 Airport Corridor)",
+      "junction_type": "Multi-loop Flyover On-ramp",
+      "risk_factors": "Airport corridor speeding, abrupt lane merges"
+    },
+    {
+      "id": "blr_acc_09",
+      "name": "Bannerghatta Road - Meenakshi Mall Junction",
+      "latitude": 12.8755,
+      "longitude": 77.5955,
+      "buffer_radius_meters": 200,
+      "historical_severity": "MODERATE",
+      "fatalities_past_3yr": 8,
+      "road_name": "Bannerghatta Main Road",
+      "junction_type": "Commercial Corridor Intersection",
+      "risk_factors": "Narrow carriage-way, roadside parking friction"
+    },
+    {
+      "id": "blr_acc_10",
+      "name": "Kanakapura Road - Sarakki Junction",
+      "latitude": 12.9065,
+      "longitude": 77.5755,
+      "buffer_radius_meters": 200,
+      "historical_severity": "MODERATE",
+      "fatalities_past_3yr": 7,
+      "road_name": "NH-948 (Kanakapura Road)",
+      "junction_type": "Metro Pier Restricted Intersection",
+      "risk_factors": "Restricted sightlines around metro pillars"
+    }
+  ]
+}

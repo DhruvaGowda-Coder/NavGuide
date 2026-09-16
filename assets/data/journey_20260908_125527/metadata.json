@@ -1,0 +1,11 @@
+﻿{
+  "id": "journey_20260908_125527",
+  "startTime": "2026-09-08T12:55:27.538574Z",
+  "endTime": "2026-09-08T12:55:46.809076Z",
+  "durationSeconds": 19,
+  "gpsCount": 3,
+  "accelCount": 1962,
+  "gyroCount": 99,
+  "magCount": 972,
+  "directoryPath": "/data/user/0/com.navguardian.navguardian_ai/app_flutter/journeys/journey_20260908_125527"
+}

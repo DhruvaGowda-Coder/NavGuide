@@ -1,0 +1,162 @@
+{
+  "source": "Bruhat Bengaluru Mahanagara Palike (BBMP) & Karnataka State Natural Disaster Monitoring Centre (KSNDMC)",
+  "dataset_version": "2026.1",
+  "region": "Bengaluru Urban, Karnataka",
+  "description": "Catalog of officially identified chronic waterlogging, low-lying inundation, and flood vulnerability blackspots in Bengaluru.",
+  "flood_spots": [
+    {
+      "id": "blr_flood_01",
+      "name": "Central Silk Board Junction",
+      "latitude": 12.9176,
+      "longitude": 77.6238,
+      "buffer_radius_meters": 250,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 60,
+      "corridor": "Hosur Road - Outer Ring Road Interchange",
+      "terrain": "Depression / Drainage bottleneck near Madiwala lake outlet"
+    },
+    {
+      "id": "blr_flood_02",
+      "name": "Outer Ring Road (Bellandur - EcoSpace)",
+      "latitude": 12.9260,
+      "longitude": 77.6835,
+      "buffer_radius_meters": 350,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 75,
+      "corridor": "Marathahalli - Sarjapur Outer Ring Road",
+      "terrain": "Bellandur lake catchment basin"
+    },
+    {
+      "id": "blr_flood_03",
+      "name": "Hebbal Flyover & Underpass",
+      "latitude": 13.0358,
+      "longitude": 77.5970,
+      "buffer_radius_meters": 250,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 45,
+      "corridor": "Bellary Road / Airport Highway - Ring Road Junction",
+      "terrain": "Hebbal lake basin underpass depression"
+    },
+    {
+      "id": "blr_flood_04",
+      "name": "Sony World Junction, Koramangala",
+      "latitude": 12.9345,
+      "longitude": 77.6285,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 50,
+      "corridor": "80 Feet Road / 100 Feet Road Koramangala",
+      "terrain": "Low-lying storm water drain (SWD) confluence"
+    },
+    {
+      "id": "blr_flood_05",
+      "name": "Okalipuram Underpass",
+      "latitude": 12.9818,
+      "longitude": 77.5682,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 90,
+      "corridor": "Majestic Railway Station - Rajajinagar Link",
+      "terrain": "Deep railway underpass sump"
+    },
+    {
+      "id": "blr_flood_06",
+      "name": "Windsor Manor Railway Underpass",
+      "latitude": 12.9960,
+      "longitude": 77.5855,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 80,
+      "corridor": "Sankey Road / Palace Road Corridor",
+      "terrain": "Confined railway underbridge low point"
+    },
+    {
+      "id": "blr_flood_07",
+      "name": "Kanteerava Studio Underpass",
+      "latitude": 13.0182,
+      "longitude": 77.5385,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 55,
+      "corridor": "Outer Ring Road (Yeshwanthpur - Nagarabhavi)",
+      "terrain": "Underpass basin without active pumping fallback"
+    },
+    {
+      "id": "blr_flood_08",
+      "name": "Domlur Flyover Underpass",
+      "latitude": 12.9610,
+      "longitude": 77.6385,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "MODERATE",
+      "historical_waterlog_depth_cm": 40,
+      "corridor": "Old Airport Road - Intermediate Ring Road Junction",
+      "terrain": "Urban grade depression"
+    },
+    {
+      "id": "blr_flood_09",
+      "name": "Rainbow Drive Layout, Sarjapur Road",
+      "latitude": 12.9105,
+      "longitude": 77.6970,
+      "buffer_radius_meters": 300,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 100,
+      "corridor": "Sarjapur Main Road - Doddakannelli",
+      "terrain": "Natural lake overflow valley"
+    },
+    {
+      "id": "blr_flood_10",
+      "name": "Varthur Kodi",
+      "latitude": 12.9555,
+      "longitude": 77.7340,
+      "buffer_radius_meters": 250,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 60,
+      "corridor": "Whitefield Main Road - Varthur Lake Outlet",
+      "terrain": "Varthur lake weir overflow zone"
+    },
+    {
+      "id": "blr_flood_11",
+      "name": "HSR Layout Sector 6 & 7",
+      "latitude": 12.9120,
+      "longitude": 77.6360,
+      "buffer_radius_meters": 300,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 50,
+      "corridor": "Agara Lake to Madiwala Lake SWD corridor",
+      "terrain": "Reclaimed lake bed low-lying topography"
+    },
+    {
+      "id": "blr_flood_12",
+      "name": "Tin Factory Underpass / KR Puram",
+      "latitude": 12.9985,
+      "longitude": 77.6695,
+      "buffer_radius_meters": 250,
+      "vulnerability_level": "SEVERE",
+      "historical_waterlog_depth_cm": 70,
+      "corridor": "Old Madras Road - Outer Ring Road confluence",
+      "terrain": "Railway bottleneck and low-lying stormwater confluence"
+    },
+    {
+      "id": "blr_flood_13",
+      "name": "Nayandahalli Junction Underpass",
+      "latitude": 12.9460,
+      "longitude": 77.5250,
+      "buffer_radius_meters": 250,
+      "vulnerability_level": "HIGH",
+      "historical_waterlog_depth_cm": 60,
+      "corridor": "Mysore Road - Outer Ring Road interchange",
+      "terrain": "Vrishabhavathi river valley depression"
+    },
+    {
+      "id": "blr_flood_14",
+      "name": "Jayadeva Hospital Underpass",
+      "latitude": 12.9180,
+      "longitude": 77.5980,
+      "buffer_radius_meters": 200,
+      "vulnerability_level": "MODERATE",
+      "historical_waterlog_depth_cm": 40,
+      "corridor": "Bannerghatta Road - 100 Feet Ring Road",
+      "terrain": "Metro construction corridor underpass"
+    }
+  ]
+}
