@@ -353,7 +353,7 @@ class _RouteSafetyRecommendationScreenState
                           MaterialPageRoute(
                             builder: (_) => LiveNavigationScreen(
                               selectedRoute: currentRanked,
-                              destinationName: _selectedPreset.title,
+                              destinationName: widget.customDestName ?? _selectedPreset.destName,
                             ),
                           ),
                         );

@@ -76,6 +76,13 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   // Route points
   late List<LatLng> _routePolylinePoints;
   int _targetPolylineIndex = 0;
+  List<LatLng> get _activeDisplayPolyline {
+    if (_routePolylinePoints.isEmpty) return [_currentPosition];
+    final startIdx = _targetPolylineIndex.clamp(0, _routePolylinePoints.length - 1);
+    final remaining = _routePolylinePoints.sublist(startIdx);
+    return [_currentPosition, ...remaining];
+  }
+
 
   @override
   void initState() {
@@ -135,6 +142,20 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
 
         _ekfEngine.addFix(fix);
         _drEngine.addFix(fix);
+
+        // Advance route progress along polyline as user moves
+        if (_routePolylinePoints.isNotEmpty && _targetPolylineIndex < _routePolylinePoints.length - 1) {
+          final nextPt = _routePolylinePoints[_targetPolylineIndex];
+          final distToNext = GeodesyUtils.haversineDistanceMeters(
+            fix.latitude,
+            fix.longitude,
+            nextPt.latitude,
+            nextPt.longitude,
+          );
+          if (distToNext < 25.0) {
+            _targetPolylineIndex++;
+          }
+        }
       } else {
         // Dead Reckoning fallback when blackout simulated
         _stepDeadReckoningPosition();
@@ -443,7 +464,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             polylines: {
               Polyline(
                 polylineId: const PolylineId('nav_route'),
-                points: _routePolylinePoints,
+                points: _activeDisplayPolyline,
                 color: const Color(0xff23695a),
                 width: 7,
               ),
@@ -939,13 +960,23 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                             color: _isBlackoutSimulated ? Colors.red.shade800 : Colors.grey.shade700,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            'GPS Blackout',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: _isBlackoutSimulated ? Colors.red.shade900 : Colors.black87,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'GPS Blackout',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isBlackoutSimulated ? Colors.red.shade900 : Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                'Test AI Dead Reckoning',
+                                style: TextStyle(fontSize: 8.5, color: Colors.grey.shade600),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -983,13 +1014,23 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                             color: _isDemoSimulationMode ? Colors.blue.shade800 : Colors.grey.shade700,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            'Desk Demo',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: _isDemoSimulationMode ? Colors.blue.shade900 : Colors.black87,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Desk Demo',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isDemoSimulationMode ? Colors.blue.shade900 : Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                'Auto-drive at desk',
+                                style: TextStyle(fontSize: 8.5, color: Colors.grey.shade600),
+                              ),
+                            ],
                           ),
                         ],
                       ),
