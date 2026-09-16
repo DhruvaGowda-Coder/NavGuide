@@ -252,31 +252,27 @@ class _DestinationSearchScreenState
                     style: TextStyle(fontSize: 12, height: 1.4),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xff23695a),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff23695a).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.touch_app_outlined, size: 16, color: Color(0xff23695a)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Tap any destination below or search above to start',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xff23695a),
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        if (_placeSuggestions.isNotEmpty) {
-                          _navigateToDestination(_placeSuggestions.first);
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RouteSafetyRecommendationScreen(
-                                initialPresetIndex: 0,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.navigation, size: 18),
-                      label: const Text('Plan Safe Route to Top Destination'),
+                      ],
                     ),
                   ),
                 ],
