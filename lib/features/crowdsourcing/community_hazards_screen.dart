@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../device/crowdsourcing/crowdsourced_hazard_service.dart';
 import '../../domain/crowdsourced_hazard_models.dart';
+import '../location/location_controller.dart';
 import 'hazard_report_screen.dart';
 
 /// Full-featured Community Hazards Screen providing an interactive city hazard map,
 /// filterable real-time hazard feed, and one-tap report creation.
-class CommunityHazardsScreen extends StatefulWidget {
+class CommunityHazardsScreen extends ConsumerStatefulWidget {
   const CommunityHazardsScreen({super.key});
 
   @override
-  State<CommunityHazardsScreen> createState() => _CommunityHazardsScreenState();
+  ConsumerState<CommunityHazardsScreen> createState() => _CommunityHazardsScreenState();
 }
 
-class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
+class _CommunityHazardsScreenState extends ConsumerState<CommunityHazardsScreen> {
   final _hazardService = CrowdsourcedHazardService.instance;
   GoogleMapController? _mapController;
 
@@ -38,14 +40,18 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
   }
 
   void _openReportModal() async {
+    final fix = ref.read(locationControllerProvider).fix;
+    final lat = fix?.latitude ?? _bangaloreCenter.latitude;
+    final lon = fix?.longitude ?? _bangaloreCenter.longitude;
+
     final result = await showModalBottomSheet<CrowdsourcedHazardReport>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => const HazardReportScreen(
-        initialLatitude: 12.9352,
-        initialLongitude: 77.6245,
-        roadName: 'Current Location Corridor',
+      builder: (ctx) => HazardReportScreen(
+        initialLatitude: lat,
+        initialLongitude: lon,
+        roadName: fix != null ? 'Current GPS Location' : 'Current Location Corridor',
       ),
     );
 
@@ -71,7 +77,12 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
         : allHazards.where((h) => h.hazardType == _filterType).toList();
 
     return Scaffold(
-      body: Column(
+      appBar: AppBar(
+        title: const Text('Community Hazards'),
+      ),
+      body: SafeArea(
+        bottom: true,
+        child: Column(
         children: [
           // Filter Chips & View Toggle Bar
           Container(
@@ -128,34 +139,43 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
             child: _showMapView
                 ? Stack(
                     children: [
-                      GoogleMap(
-                        initialCameraPosition: const CameraPosition(
-                          target: _bangaloreCenter,
-                          zoom: 12.8,
-                        ),
-                        onMapCreated: (ctrl) => _mapController = ctrl,
-                        markers: {
-                          for (final h in filteredHazards)
-                            Marker(
-                              markerId: MarkerId('comm_${h.id}'),
-                              position: LatLng(h.latitude, h.longitude),
-                              icon: BitmapDescriptor.defaultMarkerWithHue(
-                                h.hazardType == HazardType.flood ||
-                                        h.hazardType == HazardType.roadBlocked
-                                    ? BitmapDescriptor.hueRed
-                                    : (h.hazardType == HazardType.accident
-                                        ? BitmapDescriptor.hueOrange
-                                        : BitmapDescriptor.hueYellow),
-                              ),
-                              infoWindow: InfoWindow(
-                                title: '${h.hazardType.displayName} (${h.severity})',
-                                snippet:
-                                    '${h.description} · ${(h.reliabilityScore * 100).toInt()}% verified',
-                              ),
+                      Builder(
+                        builder: (context) {
+                          final fix = ref.watch(locationControllerProvider).fix;
+                          return GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: fix != null
+                                  ? LatLng(fix.latitude, fix.longitude)
+                                  : _bangaloreCenter,
+                              zoom: 13.5,
                             ),
+                            myLocationEnabled: fix != null,
+                            myLocationButtonEnabled: true,
+                            zoomControlsEnabled: false,
+                            onMapCreated: (ctrl) => _mapController = ctrl,
+                            markers: {
+                              for (final h in filteredHazards)
+                                Marker(
+                                  markerId: MarkerId('comm_${h.id}'),
+                                  position: LatLng(h.latitude, h.longitude),
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    h.hazardType == HazardType.flood ||
+                                            h.hazardType == HazardType.roadBlocked
+                                        ? BitmapDescriptor.hueRed
+                                        : (h.hazardType == HazardType.accident
+                                            ? BitmapDescriptor.hueOrange
+                                            : BitmapDescriptor.hueYellow),
+                                  ),
+                                  infoWindow: InfoWindow(
+                                    title: '${h.hazardType.displayName} (${h.severity})',
+                                    snippet:
+                                        '${h.description} · ${(h.reliabilityScore * 100).toInt()}% verified',
+                                  ),
+                                  onTap: () => _showHazardDetailsModal(h),
+                                ),
+                            },
+                          );
                         },
-                        zoomControlsEnabled: false,
-                        myLocationButtonEnabled: false,
                       ),
                       if (filteredHazards.isEmpty)
                         Positioned(
@@ -185,21 +205,6 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
                             ),
                           ),
                         ),
-                      // Floating Report CTA
-                      Positioned(
-                        right: 16,
-                        bottom: 16,
-                        child: FloatingActionButton.extended(
-                          heroTag: 'comm_report_btn',
-                          onPressed: _openReportModal,
-                          backgroundColor: const Color(0xffb71c1c),
-                          icon: const Icon(Icons.add_alert_rounded, color: Colors.white),
-                          label: const Text(
-                            'Report Hazard',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                      ),
                     ],
                   )
                 : (filteredHazards.isEmpty
@@ -235,7 +240,7 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
                         itemCount: filteredHazards.length,
                         itemBuilder: (ctx, idx) {
                           final h = filteredHazards[idx];
@@ -245,18 +250,24 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
           ),
         ],
       ),
-      floatingActionButton: !_showMapView && filteredHazards.isNotEmpty
-          ? FloatingActionButton.extended(
-              heroTag: 'comm_report_btn_list',
-              onPressed: _openReportModal,
-              backgroundColor: const Color(0xffb71c1c),
-              icon: const Icon(Icons.add_alert_rounded, color: Colors.white),
-              label: const Text(
-                'Report Hazard',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+      floatingActionButton: (!_showMapView && filteredHazards.isEmpty)
+          ? null
+          : Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom > 0 ? 10 : 16,
               ),
-            )
-          : null,
+              child: FloatingActionButton.extended(
+                heroTag: 'comm_report_btn',
+                onPressed: _openReportModal,
+                backgroundColor: const Color(0xffb71c1c),
+                icon: const Icon(Icons.add_alert_rounded, color: Colors.white),
+                label: const Text(
+                  'Report Hazard',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ),
     );
   }
 
@@ -353,7 +364,137 @@ class _CommunityHazardsScreenState extends State<CommunityHazardsScreen> {
                               );
                             },
                     ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: Colors.redAccent,
+                      ),
+                      tooltip: 'Delete Hazard',
+                      onPressed: () => _confirmDeleteHazard(h),
+                    ),
                   ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteHazard(CrowdsourcedHazardReport h) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            const Text('Delete Hazard?'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove "${h.hazardType.displayName}" on ${h.roadName}? It will be removed from the community map and will no longer affect route recommendations.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await _hazardService.deleteHazard(h.id);
+              if (!mounted) return;
+              if (ok) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Colors.red.shade700,
+                    content: Text('Hazard "${h.hazardType.displayName}" deleted successfully.'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHazardDetailsModal(CrowdsourcedHazardReport h) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(_getHazardIcon(h.hazardType), color: Colors.orange.shade800, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        h.hazardType.displayName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Text(
+                        h.roadName,
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${(h.reliabilityScore * 100).toInt()}% Verified',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(h.description, style: const TextStyle(fontSize: 13)),
+            const SizedBox(height: 8),
+            Text(
+              'Severity: ${h.severity} · ${h.confirmationsCount} Confirmations · ${h.rejectionsCount} Absent',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  icon: const Icon(Icons.delete_outline, size: 16),
+                  label: const Text('Delete Hazard'),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _confirmDeleteHazard(h);
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xff23695a)),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
                 ),
               ],
             ),

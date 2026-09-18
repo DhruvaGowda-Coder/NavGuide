@@ -67,11 +67,14 @@ class FloodDataProvider {
     }
   }
 
+  final Map<String, double?> _elevationCache = {};
+
   /// Evaluates flood risk for given coordinates.
   Future<FloodRiskInfo> evaluateLocation({
     required double latitude,
     required double longitude,
     double? activeRainfallMm,
+    double? elevation,
   }) async {
     if (!_isLoaded) {
       await initialize();
@@ -93,15 +96,16 @@ class FloodDataProvider {
       }
     }
 
-    // Check topographic elevation via Open-Meteo elevation API
-    double? elevation = await _fetchElevation(latitude, longitude);
+    // Fast in-memory resolution from cache or precomputed corridor elevation
+    final key = '${latitude.toStringAsFixed(2)},${longitude.toStringAsFixed(2)}';
+    final resolvedElevation = elevation ?? _elevationCache[key];
 
     if (matchedSpot != null) {
       final isIntenseRain = (activeRainfallMm ?? 0.0) >= 5.0;
       return FloodRiskInfo(
         isHistoricalFloodProne: true,
         historicalSpotName: matchedSpot.name,
-        elevationMeters: elevation,
+        elevationMeters: resolvedElevation,
         activeRainfallMm: activeRainfallMm,
         vulnerabilityRank: matchedSpot.vulnerabilityLevel,
         category: isIntenseRain
@@ -115,7 +119,7 @@ class FloodDataProvider {
     return FloodRiskInfo(
       isHistoricalFloodProne: false,
       historicalSpotName: null,
-      elevationMeters: elevation,
+      elevationMeters: resolvedElevation,
       activeRainfallMm: activeRainfallMm,
       vulnerabilityRank: 'NONE',
       category: FloodRiskCategory.modelDerived,
@@ -123,22 +127,32 @@ class FloodDataProvider {
     );
   }
 
-  Future<double?> _fetchElevation(double lat, double lon) async {
+  /// Fetches and caches topographic elevation for given coordinates.
+  Future<double?> fetchElevation(double lat, double lon) async {
+    final key = '${lat.toStringAsFixed(2)},${lon.toStringAsFixed(2)}';
+    if (_elevationCache.containsKey(key)) {
+      return _elevationCache[key];
+    }
     try {
       final uri = Uri.parse(
-        'https://api.open-meteo.com/v1/elevation?latitude=$lat&longitude=$lon',
+        'https://api.open-meteo.com/v1/elevation?latitude=${lat.toStringAsFixed(4)}&longitude=${lon.toStringAsFixed(4)}',
       );
-      final request = await _client.getUrl(uri).timeout(const Duration(seconds: 4));
-      final response = await request.close().timeout(const Duration(seconds: 4));
+      final request =
+          await _client.getUrl(uri).timeout(const Duration(milliseconds: 2000));
+      final response =
+          await request.close().timeout(const Duration(milliseconds: 2000));
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
         final json = jsonDecode(body) as Map<String, dynamic>;
         final elevList = json['elevation'] as List<dynamic>?;
         if (elevList != null && elevList.isNotEmpty) {
-          return (elevList.first as num?)?.toDouble();
+          final val = (elevList.first as num?)?.toDouble();
+          _elevationCache[key] = val;
+          return val;
         }
       }
     } catch (_) {}
+    _elevationCache[key] = null;
     return null;
   }
 

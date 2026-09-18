@@ -8,9 +8,13 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(18),
-    children: [
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Settings'),
+    ),
+    body: ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
       Text(
         'System Settings & Presentation',
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -148,5 +152,6 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     ],
+    ),
   );
 }

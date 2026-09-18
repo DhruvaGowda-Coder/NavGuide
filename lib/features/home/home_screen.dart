@@ -7,6 +7,7 @@ import '../location/location_controller.dart';
 import '../search/destination_search_screen.dart';
 import '../journey/journey_history_screen.dart';
 import '../journey/journey_controller.dart';
+import '../../domain/telemetry.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isMapFullscreen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(locationControllerProvider.notifier).start();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,39 +116,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Know where you are.',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'A clearer view of your journey starts with a reliable fix.',
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const DestinationSearchScreen(),
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top Sleek Destination Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DestinationSearchScreen(),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.07),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Color(0xff23695a), size: 20),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Where to? Search destination...',
+                        style: TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.search),
-                    label: const Text('Destination Search & Route Safety'),
-                  ),
-                ],
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff23695a).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.directions,
+                        size: 18,
+                        color: Color(0xff23695a),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            SizedBox(
-              height: (constraints.maxHeight * .45).clamp(220.0, 480.0),
+          ),
+
+          // Maximum Exposure Map View (Takes all available remaining space)
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: GoogleMapSurface(
                 fix: fix,
                 isFullscreen: false,
@@ -145,313 +187,217 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     setState(() => _isMapFullscreen = true),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _journeyRecordingCard(
-                    context,
-                    journeyState,
-                    journeyController,
-                    controller,
-                  ),
-                  Text(label, style: Theme.of(context).textTheme.titleLarge),
-                  if (state.message != null) Text(state.message!),
-                  if (fix?.isMocked ?? false)
-                    const Text('Device reports a mocked location.'),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _metric(
-                        'Accuracy',
-                        fix == null
-                            ? '—'
-                            : '±${fix.accuracyMeters.toStringAsFixed(1)} m',
-                      ),
-                      _metric(
-                        'Speed',
-                        fix?.speedMetersPerSecond == null
-                            ? '—'
-                            : '${(fix!.speedMetersPerSecond! * 3.6).toStringAsFixed(1)} km/h',
-                      ),
-                      _metric(
-                        'Heading',
-                        fix?.headingDegrees == null
-                            ? '—'
-                            : '${fix!.headingDegrees!.toStringAsFixed(0)}°',
-                      ),
-                    ],
-                  ),
-                  if (fix != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '${fix.latitude.toStringAsFixed(6)}, ${fix.longitude.toStringAsFixed(6)}\nGPS timestamp: ${fix.timestamp.toIso8601String()}',
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  ref
-                      .watch(connectivityProvider)
-                      .when(
-                        data: (online) => Text(
-                          online
-                              ? 'Network link available'
-                              : 'Offline · map tiles may be unavailable',
-                        ),
-                        error: (_, _) =>
-                            const Text('Network status unavailable'),
-                        loading: () => const Text('Checking network…'),
-                      ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: (state.status == TrackingStatus.requesting ||
-                                state.status == TrackingStatus.live)
-                            ? null
-                            : () => controller.start(),
-                        style: state.status == TrackingStatus.live
-                            ? FilledButton.styleFrom(
-                                backgroundColor: const Color(0xff23695a),
-                                disabledBackgroundColor:
-                                    const Color(0xff23695a),
-                                disabledForegroundColor: Colors.white,
-                              )
-                            : null,
-                        icon: state.status == TrackingStatus.requesting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Icon(
-                                state.status == TrackingStatus.live
-                                    ? Icons.check_circle_outline
-                                    : Icons.my_location,
-                              ),
-                        label: Text(
-                          switch (state.status) {
-                            TrackingStatus.idle => 'Enable live location',
-                            TrackingStatus.requesting => 'Connecting GPS…',
-                            TrackingStatus.waiting => 'Searching for fix…',
-                            TrackingStatus.live => 'Live GPS Active',
-                            _ => 'Retry location',
-                          },
-                        ),
-                      ),
-                      if (state.status == TrackingStatus.live ||
-                          state.status == TrackingStatus.waiting)
-                        OutlinedButton.icon(
-                          onPressed: controller.stop,
-                          icon: const Icon(Icons.stop, size: 16),
-                          label: const Text('Stop tracking'),
-                        ),
-                      if (state.status == TrackingStatus.blocked ||
-                          state.status == TrackingStatus.disabled)
-                        OutlinedButton(
-                          onPressed: () => controller.openSettings(
-                            location: state.status == TrackingStatus.disabled,
-                          ),
-                          child: const Text('Open settings'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+
+          // Sleek, Compact Bottom Panel for Live GPS & Journey Recording
+          _compactBottomPanel(
+            context: context,
+            state: state,
+            controller: controller,
+            journeyState: journeyState,
+            journeyController: journeyController,
+            fix: fix,
+            label: label,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _metric(String label, String value) => Card(
-    margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  Widget _compactBottomPanel({
+    required BuildContext context,
+    required TrackingState state,
+    required LocationController controller,
+    required JourneyState journeyState,
+    required JourneyController journeyController,
+    required GeoFix? fix,
+    required String label,
+  }) {
+    final isLive = state.status == TrackingStatus.live;
+    final isRequesting = state.status == TrackingStatus.requesting;
+    final isRecording = journeyState.isRecording;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
-    ),
-  );
-
-  Widget _journeyRecordingCard(
-    BuildContext context,
-    JourneyState journeyState,
-    JourneyController journeyController,
-    LocationController locationController,
-  ) {
-    final isRecording = journeyState.isRecording;
-    final m = (journeyState.elapsed.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (journeyState.elapsed.inSeconds % 60).toString().padLeft(2, '0');
-    final elapsedStr = '$m:$s';
-
-    return Card(
-      elevation: isRecording ? 2 : 0,
-      color: isRecording ? const Color(0xfffbf0ef) : const Color(0xfff0f5f2),
-      margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isRecording
-              ? const Color(0xffd32f2f)
-              : const Color(0xff23695a).withValues(alpha: 0.2),
-          width: isRecording ? 1.5 : 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1: Live GPS status & speed
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
                   children: [
                     Icon(
-                      isRecording
-                          ? Icons.fiber_manual_record
-                          : Icons.play_circle_outline,
-                      color: isRecording
-                          ? const Color(0xffd32f2f)
-                          : const Color(0xff23695a),
-                      size: 20,
+                      isLive ? Icons.gps_fixed : Icons.gps_not_fixed,
+                      color: isLive ? const Color(0xff23695a) : Colors.grey,
+                      size: 18,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      isRecording ? 'RECORDING JOURNEY' : 'Journey Recording',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: isRecording ? 0.5 : 0,
-                        color: isRecording
-                            ? const Color(0xffd32f2f)
-                            : const Color(0xff23695a),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: label,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isLive ? const Color(0xff23695a) : Colors.black87,
+                              ),
+                            ),
+                            if (fix != null && isLive)
+                              TextSpan(
+                                text: ' · ${((fix.speedMetersPerSecond ?? 0.0) * 3.6).toStringAsFixed(1)} km/h · ±${fix.accuracyMeters.toStringAsFixed(0)}m',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-                TextButton.icon(
+              ),
+              if (!isLive)
+                TextButton(
+                  onPressed: isRequesting ? null : () => controller.start(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    isRequesting ? 'Connecting…' : 'Enable GPS',
+                    style: const TextStyle(fontSize: 12, color: Color(0xff23695a)),
+                  ),
+                )
+              else if (state.status == TrackingStatus.blocked ||
+                  state.status == TrackingStatus.disabled)
+                TextButton(
+                  onPressed: () => controller.openSettings(
+                    location: state.status == TrackingStatus.disabled,
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Settings', style: TextStyle(fontSize: 12)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 0.5),
+          const SizedBox(height: 8),
+
+          // Row 2: Simple Journey Recording & History
+          Row(
+            children: [
+              if (isRecording) ...[
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Color(0xffd32f2f),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  journeyState.formattedDuration,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
+                    color: Color(0xffd32f2f),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '${journeyState.totalSamples} pts',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xffd32f2f),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () async {
+                    final meta = await journeyController.stopJourney();
+                    if (context.mounted && meta != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Saved "${meta.id}" (${meta.totalSamples} samples)'),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.stop, size: 16),
+                  label: const Text('Stop', style: TextStyle(fontSize: 12)),
+                ),
+              ] else ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xff23695a),
+                      side: const BorderSide(color: Color(0xff23695a)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () async {
+                      controller.start();
+                      await journeyController.startJourney();
+                    },
+                    icon: const Icon(Icons.fiber_manual_record, size: 14, color: Colors.red),
+                    label: const Text(
+                      'Record Journey',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                IconButton.outlined(
+                  tooltip: 'Journey History',
+                  style: IconButton.styleFrom(
+                    padding: const EdgeInsets.all(8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const JourneyHistoryScreen(),
                     ),
                   ),
                   icon: const Icon(Icons.folder_outlined, size: 18),
-                  label: Text('History (${journeyState.history.length})'),
                 ),
               ],
-            ),
-            if (isRecording) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Elapsed time',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        elapsedStr,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
-                  ),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xffd32f2f),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () async {
-                      final meta = await journeyController.stopJourney();
-                      if (context.mounted && meta != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Saved "${meta.id}" (${meta.totalSamples} samples)',
-                            ),
-                            action: SnackBarAction(
-                              label: 'View',
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const JourneyHistoryScreen(),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.stop),
-                    label: const Text('Stop Journey'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  _counterChip('GPS', journeyState.gpsCount),
-                  _counterChip('Accel', journeyState.accelCount),
-                  _counterChip('Gyro', journeyState.gyroCount),
-                  _counterChip('Mag', journeyState.magCount),
-                ],
-              ),
-            ] else ...[
-              const SizedBox(height: 6),
-              const Text(
-                'Capture synchronized raw GPS and 9-axis IMU streams locally for dead reckoning and AI models.',
-                style: TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () async {
-                  locationController.start();
-                  await journeyController.startJourney();
-                },
-                icon: const Icon(Icons.fiber_manual_record),
-                label: const Text('Start Journey'),
-              ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _counterChip(String label, int count) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Text(
-      '$label: $count',
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-    ),
-  );
 }
 

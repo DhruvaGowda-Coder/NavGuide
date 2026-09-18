@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../domain/route_safety_models.dart';
@@ -67,12 +67,29 @@ class _RouteSafetyRecommendationScreenState
       _errorMessage = null;
     });
 
-    final oLat = widget.customOriginLat ?? _selectedPreset.originLat;
-    final oLon = widget.customOriginLon ?? _selectedPreset.originLon;
+    var oLat = widget.customOriginLat ?? _selectedPreset.originLat;
+    var oLon = widget.customOriginLon ?? _selectedPreset.originLon;
     final dLat = widget.customDestLat ?? _selectedPreset.destLat;
     final dLon = widget.customDestLon ?? _selectedPreset.destLon;
-    final oName = widget.customOriginName ?? _selectedPreset.originName;
+    var oName = widget.customOriginName ?? _selectedPreset.originName;
     final dName = widget.customDestName ?? _selectedPreset.destName;
+
+    // If destination was searched but origin is default Bengaluru center, acquire actual GPS if known
+    if (widget.customDestLat != null &&
+        (widget.customOriginLat == null ||
+            (widget.customOriginLat! >= 12.9715 &&
+             widget.customOriginLat! <= 12.9717 &&
+             widget.customOriginLon! >= 77.5945 &&
+             widget.customOriginLon! <= 77.5947))) {
+      try {
+        final pos = await Geolocator.getLastKnownPosition();
+        if (pos != null) {
+          oLat = pos.latitude;
+          oLon = pos.longitude;
+          oName = 'Current Location';
+        }
+      } catch (_) {}
+    }
 
     try {
       final routes = await _dataService.fetchEnrichedRoutes(
@@ -106,11 +123,39 @@ class _RouteSafetyRecommendationScreenState
 
   void _onModeChanged(ScoringMode newMode) {
     if (_selectedMode == newMode) return;
+    final newlyRanked = _scoringEngine.rankRoutes(_candidateRoutes, mode: newMode);
     setState(() {
       _selectedMode = newMode;
-      _rankedRoutes = _scoringEngine.rankRoutes(_candidateRoutes, mode: newMode);
+      _rankedRoutes = newlyRanked;
       _selectedRouteIndex = 0;
     });
+    if (newlyRanked.isNotEmpty) {
+      _fitMapToRoute(newlyRanked.first.route);
+    }
+  }
+
+  void _fitMapToRoute(NormalizedRouteData route) {
+    if (!mounted || _mapController == null || route.fullPolyline.isEmpty) return;
+    double minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0;
+    for (final pt in route.fullPolyline) {
+      if (pt.lat < minLat) minLat = pt.lat;
+      if (pt.lat > maxLat) maxLat = pt.lat;
+      if (pt.lon < minLon) minLon = pt.lon;
+      if (pt.lon > maxLon) maxLon = pt.lon;
+    }
+    if (minLat < maxLat) {
+      try {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            LatLngBounds(
+              southwest: LatLng(minLat - 0.005, minLon - 0.005),
+              northeast: LatLng(maxLat + 0.005, maxLon + 0.005),
+            ),
+            50,
+          ),
+        );
+      } catch (_) {}
+    }
   }
 
   void _fitMapToRoutes() {
@@ -144,56 +189,82 @@ class _RouteSafetyRecommendationScreenState
 
   Set<Polyline> _buildPolylines() {
     final polylines = <Polyline>{};
+
+    // Render unselected routes first (underneath, in muted slate grey)
     for (var i = 0; i < _rankedRoutes.length; i++) {
+      if (i == _selectedRouteIndex) continue;
       final ranked = _rankedRoutes[i];
-      final isSelected = i == _selectedRouteIndex;
       final points = ranked.route.fullPolyline
           .map((p) => LatLng(p.lat, p.lon))
           .toList();
 
-      Color polyColor;
-      if (ranked.safetyScore.recommendationStatus == RecommendationStatus.avoid) {
-        polyColor = Colors.red.shade700;
-      } else if (ranked.rank == 1) {
-        polyColor = const Color(0xff10b981); // Emerald Green
-      } else {
-        polyColor = Colors.amber.shade700;
-      }
-
       polylines.add(
         Polyline(
-          polylineId: PolylineId('route_${ranked.route.routeId}'),
+          polylineId: PolylineId('route_${ranked.route.routeId}_$i'),
           points: points,
-          width: isSelected ? 7 : 4,
-          color: isSelected ? polyColor : polyColor.withValues(alpha: 0.5),
-          zIndex: isSelected ? 10 : 1,
+          width: 5,
+          color: const Color(0xff94a3b8), // Slate grey
+          zIndex: 1,
           onTap: () {
             setState(() {
               _selectedRouteIndex = i;
             });
+            _fitMapToRoute(ranked.route);
           },
           consumeTapEvents: true,
         ),
       );
     }
+
+    // Render selected route on top (standard green, width 7, zIndex 100)
+    if (_rankedRoutes.isNotEmpty && _selectedRouteIndex < _rankedRoutes.length) {
+      final selectedRanked = _rankedRoutes[_selectedRouteIndex];
+      final points = selectedRanked.route.fullPolyline
+          .map((p) => LatLng(p.lat, p.lon))
+          .toList();
+      final isAvoid = selectedRanked.safetyScore.recommendationStatus ==
+          RecommendationStatus.avoid;
+
+      polylines.add(
+        Polyline(
+          polylineId: PolylineId('route_${selectedRanked.route.routeId}_sel'),
+          points: points,
+          width: 7,
+          color: isAvoid ? Colors.red.shade700 : const Color(0xff1e8e3e), // Standard green
+          zIndex: 100,
+          onTap: () {
+            _fitMapToRoute(selectedRanked.route);
+          },
+          consumeTapEvents: true,
+        ),
+      );
+    }
+
     return polylines;
   }
 
   Set<Marker> _buildMarkers() {
     final markers = <Marker>{};
+    final oLat = widget.customOriginLat ?? _selectedPreset.originLat;
+    final oLon = widget.customOriginLon ?? _selectedPreset.originLon;
+    final dLat = widget.customDestLat ?? _selectedPreset.destLat;
+    final dLon = widget.customDestLon ?? _selectedPreset.destLon;
+    final oName = widget.customOriginName ?? _selectedPreset.originName;
+    final dName = widget.customDestName ?? _selectedPreset.destName;
+
     markers.add(
       Marker(
         markerId: const MarkerId('origin'),
-        position: LatLng(_selectedPreset.originLat, _selectedPreset.originLon),
-        infoWindow: InfoWindow(title: 'Start: ${_selectedPreset.originName}'),
+        position: LatLng(oLat, oLon),
+        infoWindow: InfoWindow(title: 'Start: $oName'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       ),
     );
     markers.add(
       Marker(
         markerId: const MarkerId('destination'),
-        position: LatLng(_selectedPreset.destLat, _selectedPreset.destLon),
-        infoWindow: InfoWindow(title: 'End: ${_selectedPreset.destName}'),
+        position: LatLng(dLat, dLon),
+        infoWindow: InfoWindow(title: 'End: $dName'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
@@ -252,26 +323,17 @@ class _RouteSafetyRecommendationScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Safest-Route AI Engine',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('Phase 7 • Explainable Safety Scoring',
-                style: TextStyle(fontSize: 11, color: Colors.white70)),
-          ],
-        ),
+        title: const Text('Safest-Route AI Engine',
+
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
         actions: [
-          IconButton(
-            tooltip: 'Corridor Presets',
-            icon: const Icon(Icons.tune),
-            onPressed: _showPresetSelector,
-          ),
-          IconButton(
-            tooltip: 'Phase 8 ML Blueprint',
-            icon: const Icon(Icons.model_training),
-            onPressed: _showMlBlueprintDialog,
-          ),
+          if (widget.customDestLat == null)
+            IconButton(
+              tooltip: 'Sample Corridors',
+              icon: const Icon(Icons.tune),
+              onPressed: _showPresetSelector,
+            ),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -609,13 +671,18 @@ class _RouteSafetyRecommendationScreenState
       child: Row(
         children: [
           for (var i = 0; i < _rankedRoutes.length; i++) ...[
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedRouteIndex = i;
-                });
-              },
-              child: _buildRouteSummaryCard(i, _rankedRoutes[i]),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  setState(() {
+                    _selectedRouteIndex = i;
+                  });
+                  _fitMapToRoute(_rankedRoutes[i].route);
+                },
+                child: _buildRouteSummaryCard(i, _rankedRoutes[i]),
+              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -1133,6 +1200,11 @@ class _RouteSafetyRecommendationScreenState
     );
   }
 
+  String _formatDistance(double meters) {
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)} km';
+    return '${meters.round()} m';
+  }
+
   Widget _buildSegmentTile(RoadSegmentData seg) {
     final profile = _scoringEngine.evaluateSegment(seg);
     final riskPercent = (profile.compositeRisk * 100).round();
@@ -1147,10 +1219,107 @@ class _RouteSafetyRecommendationScreenState
       badgeColor = Colors.green.shade700;
     }
 
+    final distLabel = _formatDistance(seg.distanceMeters);
+    final trafficLabel = seg.traffic.congestionLevel.displayName;
+    final subtitleText = profile.isCriticalHazard
+        ? 'CRITICAL: ${profile.criticalHazardReason}'
+        : (profile.explanations.isNotEmpty
+            ? '$trafficLabel • $distLabel • ${profile.explanations.first}'
+            : '$trafficLabel • $distLabel');
+
     return ListTile(
       dense: true,
+      onTap: () {
+        final dist = distLabel;
+        showModalBottomSheet(
+          context: context,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (_) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: badgeColor.withValues(alpha: 0.15),
+                        child: Text('$riskPercent',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: badgeColor,
+                                fontSize: 14)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(seg.roadName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15)),
+                            Text(dist,
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.black54)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  _detailRow(Icons.traffic, 'Traffic',
+                      seg.traffic.congestionLevel.displayName),
+                  const SizedBox(height: 10),
+                  _detailRow(
+                    Icons.water_drop_outlined,
+                    'Flood',
+                    seg.flood.isHistoricalFloodProne
+                        ? 'Known flood-prone area'
+                        : 'No recorded flooding',
+                  ),
+                  const SizedBox(height: 10),
+                  _detailRow(
+                    Icons.car_crash_outlined,
+                    'Accident',
+                    seg.accident.isHistoricalBlackspot
+                        ? 'Blackspot: ${seg.accident.blackspotName ?? "Recorded"}'
+                        : 'No accident blackspot',
+                  ),
+                  const SizedBox(height: 10),
+                  _detailRow(Icons.speed, 'Risk Score', '$riskPercent / 100'),
+                  if (profile.explanations.isNotEmpty) ...[
+                    const Divider(height: 20),
+                    for (final e in profile.explanations)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.info_outline,
+                                size: 13, color: Colors.black45),
+                            const SizedBox(width: 6),
+                            Expanded(
+                                child: Text(e,
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.black54))),
+                          ],
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
       leading: CircleAvatar(
-        radius: 12,
+        radius: 13,
         backgroundColor: badgeColor.withValues(alpha: 0.15),
         child: Text(
           '$riskPercent',
@@ -1159,19 +1328,39 @@ class _RouteSafetyRecommendationScreenState
         ),
       ),
       title: Text(seg.roadName,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       subtitle: Text(
-        profile.isCriticalHazard
-            ? 'CRITICAL: ${profile.criticalHazardReason}'
-            : (profile.explanations.isNotEmpty
-                ? profile.explanations.join(' • ')
-                : '${seg.traffic.congestionLevel.displayName} • ${(seg.distanceMeters).round()}m'),
+        subtitleText,
         style: TextStyle(
           fontSize: 10,
-          color: profile.isCriticalHazard ? Colors.red.shade800 : Colors.black54,
+          color: profile.isCriticalHazard
+              ? Colors.red.shade800
+              : Colors.black54,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
-      trailing: _buildConfidenceBadge(profile.dataConfidence),
+      trailing:
+          const Icon(Icons.chevron_right, size: 16, color: Colors.black26),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xff23695a)),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 80,
+          child: Text(label,
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w600)),
+        ),
+      ],
     );
   }
 
@@ -1216,43 +1405,5 @@ class _RouteSafetyRecommendationScreenState
     );
   }
 
-  void _showMlBlueprintDialog() {
-    const encoder = JsonEncoder.withIndent('  ');
-    final formattedBlueprint = encoder.convert(BayesianRouteRiskEvaluator.kPhase8MlBlueprint);
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.model_training, color: Color(0xff23695a)),
-            SizedBox(width: 8),
-            Text('Phase 8 ML Blueprint', style: TextStyle(fontSize: 15)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Phase 7 baseline scoring and Bayesian probability engine establish reference risk metrics. In Phase 8, user reports and sensor drift will train a supervised model using this blueprint:',
-                style: TextStyle(fontSize: 12, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              SelectableText(
-                formattedBlueprint,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 }

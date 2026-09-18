@@ -3,15 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
 import '../features/home/home_screen.dart';
+import '../features/transit/train_tracker_screen.dart';
 import '../features/crowdsourcing/community_hazards_screen.dart';
 import '../features/journey/journey_history_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/unions/unions_screen.dart';
 
 class NavGuardianApp extends StatelessWidget {
   const NavGuardianApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'NavGuardian AI',
+    title: 'NavGuide',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
@@ -29,10 +31,10 @@ class _AppShell extends ConsumerStatefulWidget {
   ConsumerState<_AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<_AppShell>
-    with WidgetsBindingObserver {
+class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserver {
   int _index = 0;
   bool _onboarded = true;
+
   @override
   void initState() {
     super.initState();
@@ -59,11 +61,33 @@ class _AppShellState extends ConsumerState<_AppShell>
         children: [
           Icon(Icons.explore),
           SizedBox(width: 10),
-          Text('NavGuardian', style: TextStyle(fontWeight: FontWeight.w700)),
-          SizedBox(width: 6),
-          Text('AI', style: TextStyle(fontSize: 14)),
+          Text('NavGuide', style: TextStyle(fontWeight: FontWeight.w700)),
         ],
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.science_outlined),
+          tooltip: 'Journeys & AI',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const JourneyHistoryScreen()),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.warning_amber_rounded),
+          tooltip: 'Hazards',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CommunityHazardsScreen()),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: 'Settings',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          ),
+        ),
+        const SizedBox(width: 4),
+      ],
     ),
     body: SafeArea(
       child: !_onboarded
@@ -106,9 +130,8 @@ class _AppShellState extends ConsumerState<_AppShell>
             )
           : switch (_index) {
               0 => const HomeScreen(),
-              1 => const CommunityHazardsScreen(),
-              2 => const JourneyHistoryScreen(),
-              _ => const SettingsScreen(),
+              1 => const TrainTrackerScreen(),
+              _ => const UnionsScreen(),
             },
     ),
     bottomNavigationBar: !_onboarded
@@ -123,19 +146,14 @@ class _AppShellState extends ConsumerState<_AppShell>
                 label: 'Explore',
               ),
               NavigationDestination(
-                icon: Icon(Icons.warning_amber_rounded),
-                selectedIcon: Icon(Icons.warning_rounded),
-                label: 'Hazards',
+                icon: Icon(Icons.directions_railway_outlined),
+                selectedIcon: Icon(Icons.directions_railway),
+                label: 'Train HUD',
               ),
               NavigationDestination(
-                icon: Icon(Icons.science_outlined),
-                selectedIcon: Icon(Icons.science),
-                label: 'Journeys & AI',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: 'Settings',
+                icon: Icon(Icons.group_outlined),
+                selectedIcon: Icon(Icons.group),
+                label: 'Unions',
               ),
             ],
           ),

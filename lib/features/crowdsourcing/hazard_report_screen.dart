@@ -23,7 +23,7 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
   final _hazardService = CrowdsourcedHazardService.instance;
   final _descController = TextEditingController();
 
-  HazardType _selectedType = HazardType.pothole;
+  final Set<HazardType> _selectedTypes = {HazardType.pothole};
   String _selectedSeverity = 'HIGH';
   bool _isSubmitting = false;
 
@@ -36,32 +36,50 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
   }
 
   void _submitReport() async {
-    final text = _descController.text.trim();
-    final description = text.isNotEmpty
-        ? text
-        : '${_selectedType.displayName} reported on ${widget.roadName}';
+    if (_selectedTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one hazard type.')),
+      );
+      return;
+    }
 
+    final text = _descController.text.trim();
     setState(() => _isSubmitting = true);
 
-    final report = await _hazardService.submitHazardReport(
-      hazardType: _selectedType,
-      description: description,
-      latitude: widget.initialLatitude,
-      longitude: widget.initialLongitude,
-      roadName: widget.roadName,
-      severity: _selectedSeverity,
-    );
+    final submittedReports = <CrowdsourcedHazardReport>[];
+    for (final type in _selectedTypes) {
+      final description = text.isNotEmpty
+          ? text
+          : '${type.displayName} reported on ${widget.roadName}';
+
+      final report = await _hazardService.submitHazardReport(
+        hazardType: type,
+        description: description,
+        latitude: widget.initialLatitude,
+        longitude: widget.initialLongitude,
+        roadName: widget.roadName,
+        severity: _selectedSeverity,
+      );
+      submittedReports.add(report);
+    }
 
     if (!mounted) return;
+
+    final count = submittedReports.length;
+    final typesStr = submittedReports.map((r) => r.hazardType.displayName).join(', ');
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xff23695a),
-        content: Text('Report submitted! ${_selectedType.displayName} broadcasted to all drivers.'),
+        content: Text(
+          count == 1
+              ? 'Report submitted! $typesStr broadcasted to all drivers.'
+              : '$count hazards reported! ($typesStr) broadcasted to all drivers.',
+        ),
       ),
     );
 
-    Navigator.pop(context, report);
+    Navigator.pop(context, submittedReports.isNotEmpty ? submittedReports.first : null);
   }
 
   @override
@@ -118,7 +136,7 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Report Road Hazard',
+                      'Report Road Hazards',
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -141,10 +159,35 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
           Expanded(
             child: ListView(
               children: [
-                // 1. Hazard Type Selector
+                // 1. Hazard Type Selector (Multi-Select)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Hazard Types',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff23695a).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_selectedTypes.length} selected',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff23695a),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 const Text(
-                  'Select Hazard Type',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  'Select one or multiple hazards present at this location:',
+                  style: TextStyle(fontSize: 11.5, color: Colors.black54),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -152,13 +195,43 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                   runSpacing: 8,
                   children: [
                     for (final type in HazardType.values)
-                      ChoiceChip(
-                        avatar: Icon(_getHazardIcon(type), size: 16),
-                        label: Text(type.displayName, style: const TextStyle(fontSize: 12)),
-                        selected: _selectedType == type,
+                      FilterChip(
+                        avatar: Icon(
+                          _getHazardIcon(type),
+                          size: 16,
+                          color: _selectedTypes.contains(type)
+                              ? const Color(0xff23695a)
+                              : Colors.grey.shade700,
+                        ),
+                        label: Text(
+                          type.displayName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: _selectedTypes.contains(type)
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        selected: _selectedTypes.contains(type),
                         selectedColor: const Color(0xff23695a).withValues(alpha: 0.18),
+                        checkmarkColor: const Color(0xff23695a),
                         onSelected: (selected) {
-                          if (selected) setState(() => _selectedType = type);
+                          setState(() {
+                            if (selected) {
+                              _selectedTypes.add(type);
+                            } else {
+                              if (_selectedTypes.length > 1) {
+                                _selectedTypes.remove(type);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    duration: Duration(seconds: 1),
+                                    content: Text('At least one hazard type must remain selected.'),
+                                  ),
+                                );
+                              }
+                            }
+                          });
                         },
                       ),
                   ],
@@ -181,7 +254,7 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                             label: Text(
                               sev,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 color: _selectedSeverity == sev ? Colors.white : Colors.black87,
                               ),
@@ -203,7 +276,7 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                   controller: _descController,
                   maxLines: 2,
                   decoration: InputDecoration(
-                    hintText: 'Details (e.g. Deep pothole across center lane after underpass)',
+                    hintText: 'Details (e.g. Deep crater waterlogged after heavy rain)',
                     hintStyle: const TextStyle(fontSize: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     contentPadding: const EdgeInsets.all(12),
@@ -220,7 +293,9 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                   ),
                   icon: const Icon(Icons.broadcast_on_personal_rounded, size: 20),
                   label: Text(
-                    _isSubmitting ? 'Broadcasting...' : 'Broadcast Hazard to Drivers',
+                    _isSubmitting
+                        ? 'Broadcasting...'
+                        : 'Broadcast ${_selectedTypes.length} Hazard${_selectedTypes.length > 1 ? "s" : ""} to Drivers',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   onPressed: _isSubmitting ? null : _submitReport,
@@ -306,6 +381,14 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Delete hazard',
+                      onPressed: () => _confirmDeleteHazard(h),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -320,6 +403,48 @@ class _HazardReportScreenState extends State<HazardReportScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteHazard(CrowdsourcedHazardReport h) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            const Text('Delete Hazard?'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove "${h.hazardType.displayName}" on ${h.roadName}? It will be permanently removed from the community map.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await _hazardService.deleteHazard(h.id);
+              if (!mounted) return;
+              if (ok) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: Colors.red.shade700,
+                    content: Text('Hazard "${h.hazardType.displayName}" deleted successfully.'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),

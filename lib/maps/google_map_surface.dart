@@ -107,7 +107,7 @@ class _GoogleMapSurfaceState extends State<GoogleMapSurface> {
               setState(() => _follow = false);
             }
           },
-          myLocationEnabled: false,
+          myLocationEnabled: fix != null,
           myLocationButtonEnabled: false,
           zoomControlsEnabled: false,
           compassEnabled: true,
@@ -121,7 +121,7 @@ class _GoogleMapSurfaceState extends State<GoogleMapSurface> {
                       ? 'Last GPS fix (stale)'
                       : 'GPS position',
                   snippet:
-                      'Accuracy ±\ m',
+                      'Accuracy ±${fix.accuracyMeters.toStringAsFixed(1)} m',
                 ),
               ),
           },

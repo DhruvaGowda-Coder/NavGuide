@@ -9,8 +9,10 @@ class RoadmapScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('NavGuardian AI — Features'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           Text(
             'What NavGuardian AI Does',
@@ -108,6 +110,7 @@ class RoadmapScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
+        ),
       ),
     );
   }

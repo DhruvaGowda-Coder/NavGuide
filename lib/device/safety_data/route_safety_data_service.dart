@@ -22,7 +22,10 @@ class RouteSafetyDataService {
   })  : _primaryRouteProvider = primaryRouteProvider ??
             GoogleRouteProvider(
               apiKey: googleMapsApiKey ??
-                  const String.fromEnvironment('GOOGLE_MAPS_API_KEY'),
+                  const String.fromEnvironment(
+                    'GOOGLE_MAPS_API_KEY',
+                    defaultValue: 'AIzaSyCFkg5ywh9TX0lGglxsVeR6K8JF-BFC7Zc',
+                  ),
             ),
         _fallbackRouteProvider = fallbackRouteProvider ?? OsrmRouteProvider(),
         _weatherProvider = weatherProvider ?? WeatherProvider(),
@@ -43,6 +46,77 @@ class RouteSafetyDataService {
       _routeCache = {};
 
   static const Duration cacheTtl = Duration(minutes: 5);
+
+  Future<List<RawRouteCandidate>> _fetchRawRoutes({
+    required double originLat,
+    required double originLon,
+    required double destLat,
+    required double destLon,
+    required String originName,
+    required String destName,
+  }) async {
+    try {
+      final routes = await _primaryRouteProvider.computeRoutes(
+        originLat: originLat,
+        originLon: originLon,
+        destLat: destLat,
+        destLon: destLon,
+        originName: originName,
+        destName: destName,
+      );
+      if (routes.isNotEmpty) return routes;
+    } catch (_) {}
+
+    try {
+      return await _fallbackRouteProvider.computeRoutes(
+        originLat: originLat,
+        originLon: originLon,
+        destLat: destLat,
+        destLon: destLon,
+        originName: originName,
+        destName: destName,
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<({WeatherInfo origin, WeatherInfo dest})> _fetchWeatherPair({
+    required double originLat,
+    required double originLon,
+    required double destLat,
+    required double destLon,
+  }) async {
+    final originFuture = _weatherProvider.fetchWeather(
+      latitude: originLat,
+      longitude: originLon,
+    );
+
+    final bool isDistant = (originLat - destLat).abs() > 0.05 ||
+        (originLon - destLon).abs() > 0.05;
+
+    final destFuture = isDistant
+        ? _weatherProvider.fetchWeather(
+            latitude: destLat,
+            longitude: destLon,
+          )
+        : originFuture;
+
+    final results = await Future.wait([originFuture, destFuture]);
+    return (origin: results[0], dest: results[1]);
+  }
+
+  Future<({double? origin, double? dest})> _fetchCorridorElevation({
+    required double originLat,
+    required double originLon,
+    required double destLat,
+    required double destLon,
+  }) async {
+    final oElevFuture = _floodProvider.fetchElevation(originLat, originLon);
+    final dElevFuture = _floodProvider.fetchElevation(destLat, destLon);
+    final res = await Future.wait([oElevFuture, dElevFuture]);
+    return (origin: res[0], dest: res[1]);
+  }
 
   /// Computes and enriches multi-candidate routes for origin and destination.
   Future<List<NormalizedRouteData>> fetchEnrichedRoutes({
@@ -65,54 +139,56 @@ class RouteSafetyDataService {
       }
     }
 
-    // Step 1: Initialize local datasets (Flood spots and Accident blackspots)
-    await Future.wait([
+    // Step 1: Execute route calculation, weather telemetry, corridor elevations,
+    // and local datasets initialization strictly IN PARALLEL.
+    final initFuture = Future.wait([
       _floodProvider.initialize(),
       _accidentProvider.initialize(),
+      _roadConditionProvider.initialize(),
     ]);
 
-    // Step 2: Fetch raw routes from primary provider (Google) or fallback (OSRM)
-    List<RawRouteCandidate> rawRoutes = [];
-    try {
-      rawRoutes = await _primaryRouteProvider.computeRoutes(
-        originLat: originLat,
-        originLon: originLon,
-        destLat: destLat,
-        destLon: destLon,
-        originName: originName,
-        destName: destName,
-      );
-    } catch (_) {
-      // Fallback to OSRM if Google is restricted or quota exceeded
-      rawRoutes = await _fallbackRouteProvider.computeRoutes(
-        originLat: originLat,
-        originLon: originLon,
-        destLat: destLat,
-        destLon: destLon,
-        originName: originName,
-        destName: destName,
-      );
-    }
+    final rawRoutesFuture = _fetchRawRoutes(
+      originLat: originLat,
+      originLon: originLon,
+      destLat: destLat,
+      destLon: destLon,
+      originName: originName,
+      destName: destName,
+    );
+
+    final weatherFuture = _fetchWeatherPair(
+      originLat: originLat,
+      originLon: originLon,
+      destLat: destLat,
+      destLon: destLon,
+    );
+
+    final elevFuture = _fetchCorridorElevation(
+      originLat: originLat,
+      originLon: originLon,
+      destLat: destLat,
+      destLon: destLon,
+    );
+
+    final results = await Future.wait([
+      rawRoutesFuture,
+      weatherFuture,
+      elevFuture,
+      initFuture,
+    ]);
+
+    final rawRoutes = results[0] as List<RawRouteCandidate>;
+    final weatherPair = results[1] as ({WeatherInfo origin, WeatherInfo dest});
+    final corridorElev = results[2] as ({double? origin, double? dest});
 
     if (rawRoutes.isEmpty) {
       return [];
     }
 
-    // Step 3: Fetch real-time weather telemetry at origin and destination
-    final originWeather = await _weatherProvider.fetchWeather(
-      latitude: originLat,
-      longitude: originLon,
-    );
+    final originWeather = weatherPair.origin;
+    final destWeather = weatherPair.dest;
 
-    final destWeather = (originLat - destLat).abs() > 0.05 ||
-            (originLon - destLon).abs() > 0.05
-        ? await _weatherProvider.fetchWeather(
-            latitude: destLat,
-            longitude: destLon,
-          )
-        : originWeather;
-
-    // Step 4: Enrich every candidate route and its discrete road segments
+    // Step 2: Enrich every candidate route and its discrete road segments (100% in-memory)
     final enrichedRoutes = <NormalizedRouteData>[];
 
     for (final raw in rawRoutes) {
@@ -125,12 +201,14 @@ class RouteSafetyDataService {
 
         // Interpolate or assign weather
         final segWeather = fraction < 0.5 ? originWeather : destWeather;
+        final segElevation = fraction < 0.5 ? corridorElev.origin : corridorElev.dest;
 
-        // Evaluate flood risk
+        // Evaluate flood risk (in-memory lookup with cached elevation)
         final floodInfo = await _floodProvider.evaluateLocation(
           latitude: step.startLat,
           longitude: step.startLon,
           activeRainfallMm: segWeather.rainfallMmPerHour,
+          elevation: segElevation,
         );
 
         // Evaluate accident blackspot risk

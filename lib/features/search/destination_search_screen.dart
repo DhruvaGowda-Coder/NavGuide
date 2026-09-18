@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -23,6 +24,8 @@ class _DestinationSearchScreenState
 
   String _query = '';
   bool _isSearchingLive = false;
+  double? _detectedLat;
+  double? _detectedLon;
   List<PlaceResult> _placeSuggestions = [];
 
   final List<String> _quickChips = [
@@ -43,6 +46,28 @@ class _DestinationSearchScreenState
   void initState() {
     super.initState();
     _placeSuggestions = PlaceSearchService.popularIndianPlaces;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationControllerProvider.notifier).start();
+      _detectCurrentLocation();
+    });
+  }
+
+  Future<void> _detectCurrentLocation() async {
+    try {
+      final pos = await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 3),
+            ),
+          );
+      if (mounted) {
+        setState(() {
+          _detectedLat = pos.latitude;
+          _detectedLon = pos.longitude;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -90,11 +115,26 @@ class _DestinationSearchScreenState
     });
   }
 
-  void _navigateToDestination(PlaceResult place) {
+  Future<void> _navigateToDestination(PlaceResult place) async {
     final fix = ref.read(locationControllerProvider).fix;
-    final currentLat = fix?.latitude ?? 12.9716;
-    final currentLon = fix?.longitude ?? 77.5946;
-    final originName = fix != null ? 'Current Location' : 'Bengaluru Center';
+    double currentLat = fix?.latitude ?? _detectedLat ?? 12.9716;
+    double currentLon = fix?.longitude ?? _detectedLon ?? 77.5946;
+    String originName = (fix != null || _detectedLat != null)
+        ? 'Current Location'
+        : 'Bengaluru Center';
+
+    if (fix == null && _detectedLat == null) {
+      try {
+        final pos = await Geolocator.getLastKnownPosition();
+        if (pos != null) {
+          currentLat = pos.latitude;
+          currentLon = pos.longitude;
+          originName = 'Current Location';
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
 
     Navigator.push(
       context,
@@ -126,8 +166,8 @@ class _DestinationSearchScreenState
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final fix = ref.watch(locationControllerProvider).fix;
-    final userLat = fix?.latitude;
-    final userLon = fix?.longitude;
+    final userLat = fix?.latitude ?? _detectedLat;
+    final userLon = fix?.longitude ?? _detectedLon;
 
     return Scaffold(
       appBar: AppBar(

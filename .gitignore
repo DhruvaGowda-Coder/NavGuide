@@ -16,3 +16,7 @@ ml/artifacts/
 !ml/data/.gitkeep
 .idea/
 *.iml
+.gradle/
+**/android/.gradle/
+scratch/
+screen_*.png

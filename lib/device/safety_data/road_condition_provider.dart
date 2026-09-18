@@ -15,43 +15,58 @@ class RoadConditionProvider {
 
   final JourneyStorage _storage;
   final JourneyReader _reader;
+  List<({double lat, double lon})>? _traversedPointsCache;
+  bool _isInitialized = false;
+
+  /// Preloads traversed journey GPS points into memory once.
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    try {
+      final journeys = await _storage.listJourneys();
+      final points = <({double lat, double lon})>[];
+      for (final j in journeys) {
+        if (j.gpsCount == 0) continue;
+        try {
+          final loaded = await _reader.loadJourney(j.directoryPath);
+          for (final fix in loaded.gpsFixes) {
+            points.add((lat: fix.latitude, lon: fix.longitude));
+          }
+        } catch (_) {}
+      }
+      _traversedPointsCache = points;
+    } catch (_) {
+      _traversedPointsCache = [];
+    }
+    _isInitialized = true;
+  }
 
   /// Evaluates road surface condition for given coordinates against locally recorded journey telemetry.
   Future<RoadConditionInfo> evaluateLocation({
     required double latitude,
     required double longitude,
   }) async {
-    try {
-      final journeys = await _storage.listJourneys();
-      if (journeys.isEmpty) {
-        return RoadConditionInfo.unknown;
-      }
+    if (!_isInitialized) {
+      await initialize();
+    }
 
-      // Check if any journey GPS fix passed within 80 meters of this location
-      for (final j in journeys) {
-        if (j.gpsCount == 0) continue;
-        try {
-          final loaded = await _reader.loadJourney(j.directoryPath);
-          for (final fix in loaded.gpsFixes) {
-            final dist = GeodesyUtils.haversineDistanceMeters(
-              latitude,
-              longitude,
-              fix.latitude,
-              fix.longitude,
-            );
-            if (dist < 80.0) {
-              return const RoadConditionInfo(
-                condition: RoadCondition.good,
-                verticalJerkRms: 0.12,
-                roughnessScore: 1.2,
-                confidence: 0.85,
-                source: 'NavGuardian On-Device IMU Calibration (Traversed)',
-              );
-            }
-          }
-        } catch (_) {}
+    final points = _traversedPointsCache ?? [];
+    for (final pt in points) {
+      final dist = GeodesyUtils.haversineDistanceMeters(
+        latitude,
+        longitude,
+        pt.lat,
+        pt.lon,
+      );
+      if (dist < 80.0) {
+        return const RoadConditionInfo(
+          condition: RoadCondition.good,
+          verticalJerkRms: 0.12,
+          roughnessScore: 1.2,
+          confidence: 0.85,
+          source: 'NavGuardian On-Device IMU Calibration (Traversed)',
+        );
       }
-    } catch (_) {}
+    }
 
     // Not traversed by any NavGuardian recording session
     return RoadConditionInfo.unknown;

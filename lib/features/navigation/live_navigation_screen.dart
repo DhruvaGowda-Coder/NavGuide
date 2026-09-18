@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -43,6 +44,31 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   late DateTime _journeyStartTime;
   bool _hasArrived = false;
 
+  // Camera & Navigation Follow Controls
+  bool _isFollowing = true;
+  DateTime _lastCameraAnimTime = DateTime.fromMillisecondsSinceEpoch(0);
+  double _currentMapZoom = 19.5;
+
+  // Multi-tier intelligent dynamic icons matching authentic Google Maps navigation proportions
+  BitmapDescriptor? _iconNormalStreet;    // 92dp for prominent street navigation (zoom >= 16.0)
+  BitmapDescriptor? _iconNormalCity;      // 80dp for district/city corridors (12.5 <= zoom < 16.0)
+  BitmapDescriptor? _iconNormalOverview;  // 70dp with beacon halo for bold regional/state overview (zoom < 12.5)
+
+  BitmapDescriptor? _iconBlackoutStreet;
+  BitmapDescriptor? _iconBlackoutCity;
+  BitmapDescriptor? _iconBlackoutOverview;
+
+  BitmapDescriptor? get _activeVehicleIcon {
+    final isBlackout = _isBlackoutEngaged;
+    if (_currentMapZoom >= 16.0) {
+      return isBlackout ? (_iconBlackoutStreet ?? _iconBlackoutCity) : (_iconNormalStreet ?? _iconNormalCity);
+    } else if (_currentMapZoom >= 12.5) {
+      return isBlackout ? (_iconBlackoutCity ?? _iconBlackoutStreet) : (_iconNormalCity ?? _iconNormalStreet);
+    } else {
+      return isBlackout ? (_iconBlackoutOverview ?? _iconBlackoutCity) : (_iconNormalOverview ?? _iconNormalCity);
+    }
+  }
+
   // Navigation mode: true for desk simulation demo, false for real physical device tracking
   bool _isDemoSimulationMode = false;
 
@@ -75,6 +101,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   // Sensors subscription
   StreamSubscription<SensorSample>? _accelSub;
   StreamSubscription<SensorSample>? _gyroSub;
+  StreamSubscription<SensorSample>? _magSub;
   StreamSubscription<GeoFix?>? _gpsSub;
   Timer? _simulatedProgressTimer;
 
@@ -107,11 +134,182 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       _currentPosition = _routePolylinePoints.first;
     }
 
+    // Align initial arrow and camera heading to the road direction!
+    if (_routePolylinePoints.length >= 2) {
+      _currentHeading = _calculateBearing(_routePolylinePoints[0], _routePolylinePoints[1]);
+    }
+
+    // Check if device already has a recent GPS fix
+    final existingFix = ref.read(locationControllerProvider).fix;
+    if (existingFix != null) {
+      _currentPosition = LatLng(existingFix.latitude, existingFix.longitude);
+      _lastGpsFixTime = DateTime.now();
+      if (existingFix.headingDegrees != null && existingFix.headingDegrees! >= 0) {
+        _currentHeading = existingFix.headingDegrees!;
+      }
+    }
+
     _hazardService.initialize();
+    _loadNavigationIcons();
     _initEngines();
     _subscribeSensors();
     _subscribeRealGps();
     _startGpsWatchdog();
+  }
+
+  Future<void> _loadNavigationIcons() async {
+    try {
+      final normalStreet = await _buildNavigationArrowBitmap(
+        isBlackout: false,
+        logicalSize: 92.0,
+        showHalo: true,
+      );
+      final normalCity = await _buildNavigationArrowBitmap(
+        isBlackout: false,
+        logicalSize: 80.0,
+        showHalo: true,
+      );
+      final normalOverview = await _buildNavigationArrowBitmap(
+        isBlackout: false,
+        logicalSize: 70.0,
+        showHalo: true,
+      );
+
+      final blackoutStreet = await _buildNavigationArrowBitmap(
+        isBlackout: true,
+        logicalSize: 92.0,
+        showHalo: true,
+      );
+      final blackoutCity = await _buildNavigationArrowBitmap(
+        isBlackout: true,
+        logicalSize: 80.0,
+        showHalo: true,
+      );
+      final blackoutOverview = await _buildNavigationArrowBitmap(
+        isBlackout: true,
+        logicalSize: 70.0,
+        showHalo: true,
+      );
+
+      if (mounted) {
+        setState(() {
+          _iconNormalStreet = normalStreet;
+          _iconNormalCity = normalCity;
+          _iconNormalOverview = normalOverview;
+
+          _iconBlackoutStreet = blackoutStreet;
+          _iconBlackoutCity = blackoutCity;
+          _iconBlackoutOverview = blackoutOverview;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<BitmapDescriptor> _buildNavigationArrowBitmap({
+    required bool isBlackout,
+    required double logicalSize,
+    bool showHalo = false,
+  }) async {
+    const double pixelRatio = 3.0;
+    final double physicalSize = logicalSize * pixelRatio;
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+    canvas.scale(pixelRatio, pixelRatio);
+
+    final size = logicalSize;
+
+    // 0. Location Pulse Halo for Overview (matches Google Maps location beacon when zoomed out)
+    if (showHalo) {
+      final haloPaint = Paint()
+        ..color = isBlackout
+            ? const Color(0x33FF7043)
+            : const Color(0x334285F4)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(size / 2, size / 2), size * 0.47, haloPaint);
+
+      final haloBorder = Paint()
+        ..color = isBlackout
+            ? const Color(0x88FF7043)
+            : const Color(0x884285F4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawCircle(Offset(size / 2, size / 2), size * 0.47, haloBorder);
+    }
+
+    // 1. Drop shadow (subtle elevation off road surface)
+    final shadowPath = Path()
+      ..moveTo(size / 2, size * 0.08)
+      ..lineTo(size - 3.5, size - 3.5)
+      ..lineTo(size / 2, size * 0.72)
+      ..lineTo(3.5, size - 3.5)
+      ..close();
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.38)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, (size * 0.06).clamp(2.0, 4.5));
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    // 2. Razor-sharp pure white outer rim
+    final chevronOutline = Path()
+      ..moveTo(size / 2, size * 0.05)
+      ..lineTo(size - 4.0, size - 4.5)
+      ..lineTo(size / 2, size * 0.70)
+      ..lineTo(4.0, size - 4.5)
+      ..close();
+    final whiteBorder = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (size * 0.085).clamp(2.5, 4.5)
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(chevronOutline, whiteBorder);
+
+    // 3. Left 3D Wing (Sunlit Face)
+    final leftWing = Path()
+      ..moveTo(size / 2, size * 0.05)
+      ..lineTo(size / 2, size * 0.70)
+      ..lineTo(4.0, size - 4.5)
+      ..close();
+    final leftShader = ui.Gradient.linear(
+      Offset(size / 2, size * 0.05),
+      Offset(4.0, size - 4.5),
+      isBlackout
+          ? [const Color(0xffff7043), const Color(0xffe64a19)]
+          : [const Color(0xff4285f4), const Color(0xff1a73e8)],
+    );
+    canvas.drawPath(leftWing, Paint()..shader = leftShader);
+
+    // 4. Right 3D Wing (Shaded 3D Chamfer)
+    final rightWing = Path()
+      ..moveTo(size / 2, size * 0.05)
+      ..lineTo(size - 4.0, size - 4.5)
+      ..lineTo(size / 2, size * 0.70)
+      ..close();
+    final rightShader = ui.Gradient.linear(
+      Offset(size / 2, size * 0.05),
+      Offset(size - 4.0, size - 4.5),
+      isBlackout
+          ? [const Color(0xffc62828), const Color(0xff8e0000)]
+          : [const Color(0xff1967d2), const Color(0xff1557b0)],
+    );
+    canvas.drawPath(rightWing, Paint()..shader = rightShader);
+
+    // 5. Center Ridge Specular Glint
+    final ridge = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
+      ..strokeWidth = (size * 0.035).clamp(1.2, 2.2)
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(size / 2, size * 0.08), Offset(size / 2, size * 0.68), ridge);
+
+    final picture = pictureRecorder.endRecording();
+    final img = await picture.toImage(physicalSize.toInt(), physicalSize.toInt());
+    final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+
+    return BitmapDescriptor.bytes(
+      pngBytes!.buffer.asUint8List(),
+      imagePixelRatio: pixelRatio,
+      width: logicalSize,
+      height: logicalSize,
+    );
   }
 
   void _startGpsWatchdog() {
@@ -119,8 +317,8 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     _gpsWatchdogTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
       if (!mounted || _isDemoSimulationMode) return;
       final elapsed = DateTime.now().difference(_lastGpsFixTime).inMilliseconds / 1000.0;
-      if (elapsed >= 3.5 && !_isAutoBlackoutActive) {
-        // Automatic GPS Loss detected!
+      if (elapsed >= 10.0 && !_isAutoBlackoutActive) {
+        // Automatic GPS Loss detected only after 10 full seconds of signal starvation
         setState(() {
           _isAutoBlackoutActive = true;
           _blackoutStartTime ??= DateTime.now();
@@ -159,13 +357,33 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
         });
       }
 
+      final speedKmh = (fix.speedMetersPerSecond ?? 0.0) * 3.6;
+
       if (!_isBlackoutEngaged) {
+        // Determine target heading:
+        // If moving at speed (>= 2.0 km/h) and GPS has valid heading, use course heading
+        // If moving along polyline, calculate forward road bearing
+        // Otherwise smoothly blend with compass
+        var targetHeading = _currentHeading;
+        if (fix.headingDegrees != null && fix.headingDegrees! >= 0 && speedKmh >= 2.0) {
+          targetHeading = fix.headingDegrees!;
+        } else if (_routePolylinePoints.isNotEmpty && _targetPolylineIndex < _routePolylinePoints.length) {
+          final targetPt = _routePolylinePoints[_targetPolylineIndex];
+          final dist = GeodesyUtils.haversineDistanceMeters(
+            fix.latitude,
+            fix.longitude,
+            targetPt.latitude,
+            targetPt.longitude,
+          );
+          if (dist > 4.0 && speedKmh >= 1.0) {
+            targetHeading = _calculateBearing(LatLng(fix.latitude, fix.longitude), targetPt);
+          }
+        }
+
         setState(() {
           _currentPosition = LatLng(fix.latitude, fix.longitude);
-          if (fix.headingDegrees != null && fix.headingDegrees! >= 0) {
-            _currentHeading = _smoothHeading(_currentHeading, fix.headingDegrees!);
-          }
-          _currentSpeedKmh = (fix.speedMetersPerSecond ?? 0.0) * 3.6;
+          _currentHeading = _smoothHeading(_currentHeading, targetHeading, factor: 0.35);
+          _currentSpeedKmh = speedKmh;
         });
 
         _ekfEngine.addFix(fix);
@@ -236,6 +454,10 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             _aiCumEast += corr.deltaEastMeters;
             _aiCumNorth += corr.deltaNorthMeters;
           }
+
+          // Step Dead Reckoning continuous positioning from inertial sensors even when GPS is dead!
+          _stepDeadReckoningPosition();
+          _centerMapOnVehicle();
         }
       }
     });
@@ -247,6 +469,24 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       _lastGy = sample.y;
       _lastGz = sample.z;
     });
+
+    // Physical compass / magnetometer stream for smooth mobile turning
+    _magSub = sensorService.watch(SensorKind.magnetometer).listen((sample) {
+      if (!mounted) return;
+      // Calculate compass orientation from Android magnetometer axes
+      final compassAngle = (math.atan2(-sample.x, sample.y) * 180.0 / math.pi + 360.0) % 360.0;
+
+      // When stopped or walking slowly (< 2.2 km/h), smoothly rotate map and arrow to match phone direction
+      if (_currentSpeedKmh < 2.2) {
+        final smoothed = _smoothHeading(_currentHeading, compassAngle, factor: 0.18);
+        if ((smoothed - _currentHeading).abs() > 0.4) {
+          setState(() {
+            _currentHeading = smoothed;
+          });
+          _centerMapOnVehicle();
+        }
+      }
+    });
   }
 
   void _stepDeadReckoningPosition() {
@@ -257,7 +497,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     if (!ekfLat.isNaN && !ekfLon.isNaN && ekfLat.abs() > 1.0) {
       setState(() {
         _currentPosition = LatLng(ekfLat + aiDelta.deltaLat, ekfLon + aiDelta.deltaLon);
-        _currentHeading = _ekfEngine.currentHeadingDegrees;
+        _currentHeading = _smoothHeading(_currentHeading, _ekfEngine.currentHeadingDegrees, factor: 0.3);
         _currentSpeedKmh = _ekfEngine.currentSpeedMps * 3.6;
       });
     }
@@ -282,8 +522,8 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             final bearing = _calculateBearing(_currentPosition, nextTarget);
             setState(() {
               _currentPosition = nextTarget;
-              _currentHeading = bearing;
-              _currentSpeedKmh = 35.0;
+              _currentHeading = _smoothHeading(_currentHeading, bearing, factor: 0.5);
+              _currentSpeedKmh = 28.0; // Moving speed engages dynamic zoom in
             });
 
             _ekfEngine.addFix(GeoFix(
@@ -291,7 +531,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
               longitude: nextTarget.longitude,
               accuracyMeters: 3.5,
               timestamp: DateTime.now(),
-              speedMetersPerSecond: 35.0 / 3.6,
+              speedMetersPerSecond: 28.0 / 3.6,
               headingDegrees: bearing,
               source: PositionSource.gps,
             ));
@@ -357,24 +597,50 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     });
   }
 
-  void _centerMapOnVehicle() {
+  void _centerMapOnVehicle({bool force = false}) {
+    if (_mapController == null || (!_isFollowing && !force)) return;
+
+    final now = DateTime.now();
+    if (!force && now.difference(_lastCameraAnimTime).inMilliseconds < 250) {
+      return;
+    }
+    _lastCameraAnimTime = now;
+
+    // Speed-adaptive dynamic zoom like Google Maps:
+    // At starting position, stationary, or walking (< 28 km/h):
+    // Zoom in close to 19.5 with 52° 3D tilt so user immediately sees their exact real location, lane, and route start!
+    // Medium driving speed (28 - 60 km/h): zoom 18.2, tilt 45.0°
+    // High-speed highway (>= 60 km/h): zoom 16.8, tilt 36.0°
+    final double targetZoom;
+    final double targetTilt;
+    if (_currentSpeedKmh >= 60.0) {
+      targetZoom = 16.8;
+      targetTilt = 36.0;
+    } else if (_currentSpeedKmh >= 28.0) {
+      targetZoom = 18.2;
+      targetTilt = 45.0;
+    } else {
+      targetZoom = 19.5;
+      targetTilt = 52.0;
+    }
+
     _mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: _currentPosition,
-          zoom: 17.5,
-          tilt: 45.0,
+          zoom: targetZoom,
+          tilt: targetTilt,
           bearing: _currentHeading,
         ),
       ),
     );
   }
 
-  double _smoothHeading(double current, double target) {
+  double _smoothHeading(double current, double target, {double factor = 0.25}) {
     var diff = (target - current) % 360.0;
     if (diff > 180.0) diff -= 360.0;
     if (diff < -180.0) diff += 360.0;
-    return (current + diff * 0.35) % 360.0;
+    return (current + diff * factor) % 360.0;
   }
 
   double _calculateBearing(LatLng start, LatLng end) {
@@ -429,6 +695,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     _gpsSub?.cancel();
     _accelSub?.cancel();
     _gyroSub?.cancel();
+    _magSub?.cancel();
 
     final totalDurationSeconds = DateTime.now().difference(_journeyStartTime).inSeconds.toDouble();
     var blackoutSecs = _accumulatedBlackoutSeconds;
@@ -477,6 +744,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     _gpsSub?.cancel();
     _accelSub?.cancel();
     _gyroSub?.cancel();
+    _magSub?.cancel();
     super.dispose();
   }
 
@@ -488,60 +756,86 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       body: Stack(
         children: [
           // 1. Interactive 3D Live Navigation Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _currentPosition,
-              zoom: 17.5,
-              tilt: 45.0,
-              bearing: _currentHeading,
-            ),
-            onMapCreated: (ctrl) {
-              _mapController = ctrl;
-              _centerMapOnVehicle();
+          Listener(
+            onPointerDown: (event) {
+              // User physically touched the map screen to pan/explore
+              if (_isFollowing) {
+                setState(() {
+                  _isFollowing = false;
+                });
+              }
             },
-            polylines: {
-              Polyline(
-                polylineId: const PolylineId('nav_route'),
-                points: _activeDisplayPolyline,
-                color: const Color(0xff23695a),
-                width: 7,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: _currentPosition,
+                zoom: 19.5,
+                tilt: 52.0,
+                bearing: _currentHeading,
               ),
-            },
-            markers: {
-              // Current vehicle marker
-              Marker(
-                markerId: const MarkerId('vehicle_marker'),
-                position: _currentPosition,
-                rotation: _currentHeading,
-                anchor: const Offset(0.5, 0.5),
-                flat: true,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                  _isBlackoutEngaged ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure,
+              onMapCreated: (ctrl) {
+                _mapController = ctrl;
+                _centerMapOnVehicle(force: true);
+              },
+              onCameraMove: (pos) {
+                // Intelligently resize 3D navigation chevron matching Google Maps: Street (92dp), City (80dp), Overview (70dp + halo)
+                int getTier(double z) {
+                  if (z >= 16.0) return 2;
+                  if (z >= 12.5) return 1;
+                  return 0;
+                }
+                final oldTier = getTier(_currentMapZoom);
+                final newTier = getTier(pos.zoom);
+                _currentMapZoom = pos.zoom;
+                if (oldTier != newTier && mounted) {
+                  setState(() {});
+                }
+              },
+              polylines: {
+                Polyline(
+                  polylineId: const PolylineId('nav_route'),
+                  points: _activeDisplayPolyline,
+                  color: const Color(0xff23695a),
+                  width: 7,
                 ),
-              ),
-              // Upcoming hazard markers along corridor
-              for (final h in _hazardService.getNearbyHazards(
-                lat: _currentPosition.latitude,
-                lon: _currentPosition.longitude,
-                radiusMeters: 1500,
-              ))
+              },
+              markers: {
+                // Current vehicle marker: Custom 3D directional chevron pointing along road
                 Marker(
-                  markerId: MarkerId('nav_h_${h.id}'),
-                  position: LatLng(h.latitude, h.longitude),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    h.hazardType == HazardType.flood || h.hazardType == HazardType.roadBlocked
-                        ? BitmapDescriptor.hueRed
-                        : BitmapDescriptor.hueYellow,
-                  ),
-                  infoWindow: InfoWindow(
-                    title: '${h.hazardType.displayName} (${h.severity})',
-                    snippet: h.description,
-                  ),
+                  markerId: const MarkerId('vehicle_marker'),
+                  position: _currentPosition,
+                  rotation: _currentHeading,
+                  anchor: const Offset(0.5, 0.5),
+                  flat: true,
+                  zIndexInt: 999,
+                  icon: _activeVehicleIcon ??
+                      BitmapDescriptor.defaultMarkerWithHue(
+                        _isBlackoutEngaged ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure,
+                      ),
                 ),
-            },
-            myLocationEnabled: false,
-            zoomControlsEnabled: false,
-            compassEnabled: true,
+                // Upcoming hazard markers along corridor
+                for (final h in _hazardService.getNearbyHazards(
+                  lat: _currentPosition.latitude,
+                  lon: _currentPosition.longitude,
+                  radiusMeters: 1500,
+                ))
+                  Marker(
+                    markerId: MarkerId('nav_h_${h.id}'),
+                    position: LatLng(h.latitude, h.longitude),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      h.hazardType == HazardType.flood || h.hazardType == HazardType.roadBlocked
+                          ? BitmapDescriptor.hueRed
+                          : BitmapDescriptor.hueYellow,
+                    ),
+                    infoWindow: InfoWindow(
+                      title: '${h.hazardType.displayName} (${h.severity})',
+                      snippet: h.description,
+                    ),
+                  ),
+              },
+              myLocationEnabled: false,
+              zoomControlsEnabled: false,
+              compassEnabled: true,
+            ),
           ),
 
           // 2. Top Turn-by-Turn Instruction Banner
@@ -615,20 +909,26 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
               ),
             ),
 
-          // 6. Floating Recenter Button
-          Positioned(
-            right: 16,
-            bottom: 130 + bottomInset,
-            child: FloatingActionButton.small(
-              heroTag: 'recenter_btn',
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xff23695a),
-              onPressed: _centerMapOnVehicle,
-              tooltip: 'Center on Vehicle',
-              elevation: 4,
-              child: const Icon(Icons.my_location),
+          // 6. Floating Recenter Button (Appears only when user manually pans away)
+          if (!_isFollowing)
+            Positioned(
+              right: 16,
+              bottom: 130 + bottomInset,
+              child: FloatingActionButton.extended(
+                heroTag: 'recenter_btn',
+                backgroundColor: const Color(0xff23695a),
+                foregroundColor: Colors.white,
+                onPressed: () {
+                  setState(() {
+                    _isFollowing = true;
+                  });
+                  _centerMapOnVehicle(force: true);
+                },
+                icon: const Icon(Icons.navigation_rounded),
+                label: const Text('Re-center', style: TextStyle(fontWeight: FontWeight.bold)),
+                elevation: 6,
+              ),
             ),
-          ),
 
           // 7. Bottom Navigation Bar & Mode Controls
           Positioned(
@@ -642,10 +942,56 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     );
   }
 
+  double _calculateRemainingDistanceMeters() {
+    if (_routePolylinePoints.isEmpty || _hasArrived) return 0.0;
+    if (_targetPolylineIndex >= _routePolylinePoints.length) return 0.0;
+
+    double totalM = 0.0;
+    final nextPt = _routePolylinePoints[_targetPolylineIndex.clamp(0, _routePolylinePoints.length - 1)];
+    totalM += GeodesyUtils.haversineDistanceMeters(
+      _currentPosition.latitude,
+      _currentPosition.longitude,
+      nextPt.latitude,
+      nextPt.longitude,
+    );
+
+    for (int i = _targetPolylineIndex; i < _routePolylinePoints.length - 1; i++) {
+      totalM += GeodesyUtils.haversineDistanceMeters(
+        _routePolylinePoints[i].latitude,
+        _routePolylinePoints[i].longitude,
+        _routePolylinePoints[i + 1].latitude,
+        _routePolylinePoints[i + 1].longitude,
+      );
+    }
+    return totalM;
+  }
+
   Widget _buildTopManeuverBanner() {
     final topPadding = MediaQuery.of(context).padding.top;
-    final remainingDistKm = widget.selectedRoute.route.distanceMeters / 1000.0;
-    final remainingMin = (widget.selectedRoute.route.trafficDurationSeconds / 60.0).toStringAsFixed(0);
+    final remainingDistM = _calculateRemainingDistanceMeters();
+    final remainingDistKm = remainingDistM > 0
+        ? remainingDistM / 1000.0
+        : widget.selectedRoute.route.distanceMeters / 1000.0;
+
+    final baselineSpeed = (widget.selectedRoute.route.distanceMeters > 0 &&
+            widget.selectedRoute.route.trafficDurationSeconds > 0)
+        ? (widget.selectedRoute.route.distanceMeters / 1000.0) /
+            (widget.selectedRoute.route.trafficDurationSeconds / 3600.0)
+        : 28.0;
+
+    final effectiveSpeed = _currentSpeedKmh >= 15.0
+        ? (_currentSpeedKmh * 0.7) + (baselineSpeed * 0.3)
+        : baselineSpeed.clamp(15.0, 65.0);
+
+    final remainingMin = _hasArrived
+        ? 0
+        : math.max(1, ((remainingDistKm / effectiveSpeed) * 60.0).round());
+
+    final etaTime = DateTime.now().add(Duration(minutes: remainingMin));
+    final hour = etaTime.hour % 12 == 0 ? 12 : etaTime.hour % 12;
+    final minuteStr = etaTime.minute.toString().padLeft(2, '0');
+    final amPm = etaTime.hour >= 12 ? 'PM' : 'AM';
+    final etaClockStr = '$hour:$minuteStr $amPm';
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, topPadding + 8, 16, 12),
@@ -742,7 +1088,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'ETA: $remainingMin min (${remainingDistKm.toStringAsFixed(1)} km)',
+                _hasArrived ? 'Arrived at destination' : 'ETA: $remainingMin min ($etaClockStr) · ${remainingDistKm.toStringAsFixed(1)} km',
                 style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
               ),
               Container(
@@ -951,15 +1297,51 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   }
 
   Widget _buildBottomNavigationBar(double bottomInset) {
+    final remainingDistM = _calculateRemainingDistanceMeters();
+    final remainingKm = remainingDistM > 0
+        ? remainingDistM / 1000.0
+        : widget.selectedRoute.route.distanceMeters / 1000.0;
+
+    final baselineSpeed = (widget.selectedRoute.route.distanceMeters > 0 &&
+            widget.selectedRoute.route.trafficDurationSeconds > 0)
+        ? (widget.selectedRoute.route.distanceMeters / 1000.0) /
+            (widget.selectedRoute.route.trafficDurationSeconds / 3600.0)
+        : 28.0;
+
+    final effectiveSpeed = _currentSpeedKmh >= 15.0
+        ? (_currentSpeedKmh * 0.7) + (baselineSpeed * 0.3)
+        : baselineSpeed.clamp(15.0, 65.0);
+
+    final remainingMins = _hasArrived
+        ? 0
+        : math.max(1, ((remainingKm / effectiveSpeed) * 60.0).round());
+
+    final etaTime = DateTime.now().add(Duration(minutes: remainingMins));
+    final hour = etaTime.hour % 12 == 0 ? 12 : etaTime.hour % 12;
+    final minuteStr = etaTime.minute.toString().padLeft(2, '0');
+    final amPm = etaTime.hour >= 12 ? 'PM' : 'AM';
+    final etaClockStr = '$hour:$minuteStr $amPm';
+
+    final String timeRemainingStr;
+    if (_hasArrived) {
+      timeRemainingStr = 'Arrived';
+    } else if (remainingMins >= 60) {
+      final h = remainingMins ~/ 60;
+      final m = remainingMins % 60;
+      timeRemainingStr = '${h}h ${m}m';
+    } else {
+      timeRemainingStr = '$remainingMins min';
+    }
+
     return Container(
-      padding: EdgeInsets.fromLTRB(18, 14, 18, 14 + bottomInset),
+      padding: EdgeInsets.fromLTRB(20, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 12,
             offset: const Offset(0, -3),
           ),
         ],
@@ -967,49 +1349,137 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Destination Info & End Journey Button
+          // Minimal drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Google Maps Style ETA details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.destinationName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    // Big Green Remaining Duration
+                    Row(
+                      children: [
+                        Text(
+                          timeRemainingStr,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xff1b873f), // Signature Google Maps Green
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        if (_currentSpeedKmh >= 15.0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.speed_rounded, size: 12, color: Colors.green.shade700),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${_currentSpeedKmh.toStringAsFixed(0)} km/h',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    Text(
-                      '${(widget.selectedRoute.route.distanceMeters / 1000.0).toStringAsFixed(1)} km · ${_isDemoSimulationMode ? "Demo Walkthrough" : "Live Device GPS"}',
-                      style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                    const SizedBox(height: 2),
+                    // Distance + ETA Clock Time + Destination
+                    Row(
+                      children: [
+                        Text(
+                          '${remainingKm.toStringAsFixed(1)} km',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                        ),
+                        Icon(Icons.schedule_rounded, size: 12, color: Colors.grey.shade600),
+                        const SizedBox(width: 3),
+                        Text(
+                          etaClockStr,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              IconButton(
-                icon: Icon(
-                  _isDemoSimulationMode ? Icons.play_circle_fill : Icons.play_circle_outline,
-                  color: _isDemoSimulationMode ? const Color(0xff23695a) : Colors.grey.shade600,
-                  size: 26,
-                ),
-                tooltip: _isDemoSimulationMode ? 'Pause Desk Demo' : 'Start Desk Demo Simulation',
-                onPressed: () => _toggleSimulationMode(!_isDemoSimulationMode),
-              ),
-              const SizedBox(width: 4),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: _hasArrived ? const Color(0xff2e7d32) : const Color(0xffb71c1c),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: Icon(_hasArrived ? Icons.check_circle : Icons.flag_rounded, color: Colors.white, size: 16),
-                label: Text(
-                  _hasArrived ? 'Finish' : 'End Journey',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                ),
-                onPressed: _endJourney,
+
+              // Action Buttons: Simulation Play/Pause + Exit
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      _isDemoSimulationMode ? Icons.pause_circle_filled_rounded : Icons.play_circle_outline_rounded,
+                      color: _isDemoSimulationMode ? const Color(0xff23695a) : Colors.grey.shade500,
+                      size: 26,
+                    ),
+                    tooltip: _isDemoSimulationMode ? 'Pause Simulation' : 'Start Simulation',
+                    onPressed: () => _toggleSimulationMode(!_isDemoSimulationMode),
+                  ),
+                  const SizedBox(width: 4),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _hasArrived ? const Color(0xff2e7d32) : const Color(0xffb71c1c),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _endJourney,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _hasArrived ? Icons.check_circle_outline_rounded : Icons.close_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _hasArrived ? 'Finish' : 'Exit',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

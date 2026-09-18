@@ -166,6 +166,16 @@ class CrowdsourcedHazardService {
     return updated;
   }
 
+  /// Delete/remove a hazard report completely from storage.
+  Future<bool> deleteHazard(String reportId) async {
+    final idx = _hazards.indexWhere((h) => h.id == reportId);
+    if (idx < 0) return false;
+    _hazards.removeAt(idx);
+    _userVotedIds.remove(reportId);
+    await _saveHazards();
+    return true;
+  }
+
   /// Record user rating feedback for a completed route.
   Future<void> submitRouteRating(RouteRatingFeedback feedback) async {
     _ratings.add(feedback);

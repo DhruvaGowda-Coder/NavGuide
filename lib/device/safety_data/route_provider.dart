@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:io';
 
@@ -183,6 +184,94 @@ class OsrmRouteProvider implements RouteProvider {
 
   final HttpClient _client;
 
+  RawRouteCandidate _parseOsrmRoute(
+    Map<String, dynamic> r,
+    int index,
+    double originLat,
+    double originLon,
+    double destLat,
+    double destLon,
+  ) {
+    final distMeters = (r['distance'] as num?)?.toDouble() ?? 0.0;
+    final staticSec = (r['duration'] as num?)?.toDouble() ?? 0.0;
+
+    final geom = r['geometry'] as Map<String, dynamic>? ?? {};
+    final coordsList = geom['coordinates'] as List<dynamic>? ?? [];
+    final fullPoly = coordsList.map((c) {
+      final pair = c as List<dynamic>;
+      return (lat: (pair[1] as num).toDouble(), lon: (pair[0] as num).toDouble());
+    }).toList();
+
+    final legs = r['legs'] as List<dynamic>? ?? [];
+    final steps = <RawRouteStep>[];
+    var primaryRoad = 'Major Urban Corridor';
+    var longestRoad = '';
+    var maxDist = 0.0;
+
+    if (legs.isNotEmpty) {
+      for (final leg in legs) {
+        final lm = leg as Map<String, dynamic>;
+        final rawSteps = lm['steps'] as List<dynamic>? ?? [];
+        for (final s in rawSteps) {
+          final sm = s as Map<String, dynamic>;
+          final name = sm['name'] as String? ?? '';
+          final sDist = (sm['distance'] as num?)?.toDouble() ?? 0.0;
+          if (name.isNotEmpty) {
+            if (primaryRoad == 'Major Urban Corridor') {
+              primaryRoad = name;
+            }
+            if (sDist > maxDist) {
+              maxDist = sDist;
+              longestRoad = name;
+            }
+          }
+          final sDur = (sm['duration'] as num?)?.toDouble() ?? 0.0;
+          final sGeom = sm['geometry'] as Map<String, dynamic>? ?? {};
+          final sCoords = (sGeom['coordinates'] as List<dynamic>? ?? []).map((c) {
+            final pair = c as List<dynamic>;
+            return (lat: (pair[1] as num).toDouble(), lon: (pair[0] as num).toDouble());
+          }).toList();
+
+          final start = sCoords.isNotEmpty ? sCoords.first : (lat: originLat, lon: originLon);
+          final end = sCoords.isNotEmpty ? sCoords.last : (lat: destLat, lon: destLon);
+
+          final maneuver = sm['maneuver'] as Map<String, dynamic>? ?? {};
+          final type = maneuver['type'] as String? ?? 'proceed';
+          final modifier = maneuver['modifier'] as String? ?? '';
+          final instruction = name.isNotEmpty ? '$type $modifier onto $name' : '$type $modifier';
+
+          steps.add(
+            RawRouteStep(
+              instruction: instruction,
+              roadName: name.isNotEmpty ? name : 'Connecting Segment',
+              startLat: start.lat,
+              startLon: start.lon,
+              endLat: end.lat,
+              endLon: end.lon,
+              distanceMeters: sDist,
+              durationSeconds: sDur,
+              polyline: sCoords,
+            ),
+          );
+        }
+      }
+    }
+
+    final summary = longestRoad.isNotEmpty ? longestRoad : primaryRoad;
+
+    return RawRouteCandidate(
+      routeId: 'osrm_route_$index',
+      summary: summary,
+      providerName: 'OpenStreetMap OSRM Engine',
+      distanceMeters: distMeters,
+      staticDurationSeconds: staticSec,
+      trafficDurationSeconds: staticSec,
+      fullPolyline: fullPoly,
+      steps: steps,
+      travelAdvisories: const [],
+    );
+  }
+
   @override
   Future<List<RawRouteCandidate>> computeRoutes({
     required double originLat,
@@ -217,81 +306,92 @@ class OsrmRouteProvider implements RouteProvider {
     final results = <RawRouteCandidate>[];
 
     for (var i = 0; i < routesList.length; i++) {
-      final r = routesList[i] as Map<String, dynamic>;
-      final distMeters = (r['distance'] as num?)?.toDouble() ?? 0.0;
-      final staticSec = (r['duration'] as num?)?.toDouble() ?? 0.0;
-
-      // Extract GeoJSON full geometry
-      final geom = r['geometry'] as Map<String, dynamic>? ?? {};
-      final coordsList = geom['coordinates'] as List<dynamic>? ?? [];
-      final fullPoly = coordsList.map((c) {
-        final pair = c as List<dynamic>;
-        return (lat: (pair[1] as num).toDouble(), lon: (pair[0] as num).toDouble());
-      }).toList();
-
-      final legs = r['legs'] as List<dynamic>? ?? [];
-      final steps = <RawRouteStep>[];
-      var primaryRoad = 'Major Urban Corridor';
-
-      if (legs.isNotEmpty) {
-        final leg = legs.first as Map<String, dynamic>;
-        final rawSteps = leg['steps'] as List<dynamic>? ?? [];
-        for (final s in rawSteps) {
-          final sm = s as Map<String, dynamic>;
-          final name = sm['name'] as String? ?? '';
-          if (name.isNotEmpty && primaryRoad == 'Major Urban Corridor') {
-            primaryRoad = name;
-          }
-          final sDist = (sm['distance'] as num?)?.toDouble() ?? 0.0;
-          final sDur = (sm['duration'] as num?)?.toDouble() ?? 0.0;
-          final sGeom = sm['geometry'] as Map<String, dynamic>? ?? {};
-          final sCoords = (sGeom['coordinates'] as List<dynamic>? ?? []).map((c) {
-            final pair = c as List<dynamic>;
-            return (lat: (pair[1] as num).toDouble(), lon: (pair[0] as num).toDouble());
-          }).toList();
-
-          final start = sCoords.isNotEmpty ? sCoords.first : (lat: originLat, lon: originLon);
-          final end = sCoords.isNotEmpty ? sCoords.last : (lat: destLat, lon: destLon);
-
-          final maneuver = sm['maneuver'] as Map<String, dynamic>? ?? {};
-          final type = maneuver['type'] as String? ?? 'proceed';
-          final modifier = maneuver['modifier'] as String? ?? '';
-          final instruction = name.isNotEmpty ? '$type $modifier onto $name' : '$type $modifier';
-
-          steps.add(
-            RawRouteStep(
-              instruction: instruction,
-              roadName: name.isNotEmpty ? name : 'Connecting Segment',
-              startLat: start.lat,
-              startLon: start.lon,
-              endLat: end.lat,
-              endLon: end.lon,
-              distanceMeters: sDist,
-              durationSeconds: sDur,
-              polyline: sCoords,
-            ),
-          );
-        }
-      }
-
       results.add(
-        RawRouteCandidate(
-          routeId: 'osrm_route_${i + 1}',
-          summary: primaryRoad,
-          providerName: 'OpenStreetMap OSRM Engine',
-          distanceMeters: distMeters,
-          staticDurationSeconds: staticSec,
-          trafficDurationSeconds: staticSec, // Free flow without live Google congestion
-          fullPolyline: fullPoly,
-          steps: steps,
-          travelAdvisories: const [],
+        _parseOsrmRoute(
+          routesList[i] as Map<String, dynamic>,
+          i + 1,
+          originLat,
+          originLon,
+          destLat,
+          destLon,
         ),
       );
+    }
+
+    // If OSRM returned fewer than 3 routes, calculate alternative corridors via offset midpoints
+    if (results.length < 3) {
+      final mLat = (originLat + destLat) / 2.0;
+      final mLon = (originLon + destLon) / 2.0;
+      final dx = destLon - originLon;
+      final dy = destLat - originLat;
+      final dist = math.sqrt(dx * dx + dy * dy);
+
+      if (dist > 0.0005) {
+        final offset = math.max(0.003, math.min(0.05, dist * 0.22));
+        final waypoints = [
+          (lat: mLat - (dy / dist) * offset, lon: mLon + (dx / dist) * offset),
+          (lat: mLat + (dy / dist) * offset, lon: mLon - (dx / dist) * offset),
+        ];
+
+        final waypointsToQuery = waypoints.take(3 - results.length).toList();
+        final altFutures = waypointsToQuery.map((wp) async {
+          try {
+            final altUri = Uri.parse(
+              'https://router.project-osrm.org/route/v1/driving/'
+              '$originLon,$originLat;${wp.lon},${wp.lat};$destLon,$destLat'
+              '?overview=full&geometries=geojson&steps=true',
+            );
+            final altReq = await _client.getUrl(altUri).timeout(const Duration(milliseconds: 2500));
+            final altResp = await altReq.close().timeout(const Duration(milliseconds: 2500));
+            if (altResp.statusCode == 200) {
+              final altBody = await altResp.transform(utf8.decoder).join();
+              final altJson = jsonDecode(altBody) as Map<String, dynamic>;
+              final altRoutes = altJson['routes'] as List<dynamic>? ?? [];
+              if (altRoutes.isNotEmpty) {
+                return _parseOsrmRoute(
+                  altRoutes.first as Map<String, dynamic>,
+                  0,
+                  originLat,
+                  originLon,
+                  destLat,
+                  destLon,
+                );
+              }
+            }
+          } catch (_) {}
+          return null;
+        });
+
+        final altCandidates = await Future.wait(altFutures);
+        for (final cand in altCandidates) {
+          if (cand != null && results.length < 3) {
+            final isDuplicate = results.any((existing) =>
+                (existing.distanceMeters - cand.distanceMeters).abs() < 50 &&
+                (existing.staticDurationSeconds - cand.staticDurationSeconds).abs() < 15);
+            if (!isDuplicate) {
+              results.add(
+                RawRouteCandidate(
+                  routeId: 'osrm_route_${results.length + 1}',
+                  summary: cand.summary,
+                  providerName: cand.providerName,
+                  distanceMeters: cand.distanceMeters,
+                  staticDurationSeconds: cand.staticDurationSeconds,
+                  trafficDurationSeconds: cand.trafficDurationSeconds,
+                  fullPolyline: cand.fullPolyline,
+                  steps: cand.steps,
+                  travelAdvisories: cand.travelAdvisories,
+                ),
+              );
+            }
+          }
+        }
+      }
     }
 
     return results;
   }
 }
+
 
 /// Utility to decode Google encoded polylines into Lat/Lon coordinates.
 class PolylineUtils {

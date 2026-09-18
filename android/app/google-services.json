@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "496303044045",
+    "project_id": "diary-13644",
+    "storage_bucket": "diary-13644.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:496303044045:android:2591319b6962b826c18084",
+        "android_client_info": {
+          "package_name": "com.navguardian.navguardian_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "496303044045-252bbfnoaoo32o0rpirj2et0l0gneev1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFkg5ywh9TX0lGglxsVeR6K8JF-BFC7Zc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "496303044045-252bbfnoaoo32o0rpirj2et0l0gneev1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

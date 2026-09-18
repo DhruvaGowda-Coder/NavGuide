@@ -1,0 +1,1973 @@
+[
+  {
+    "code": "SBC",
+    "name": "KSR Bengaluru City Junction",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.9781,
+    "longitude": 77.5696
+  },
+  {
+    "code": "YPR",
+    "name": "Yesvantpur Junction",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 13.0238,
+    "longitude": 77.5503
+  },
+  {
+    "code": "SMVB",
+    "name": "Sir M. Visvesvaraya Terminal",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 13.0039,
+    "longitude": 77.6534
+  },
+  {
+    "code": "BNC",
+    "name": "Bengaluru Cantonment",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.9937,
+    "longitude": 77.5982
+  },
+  {
+    "code": "KJM",
+    "name": "Krishnarajapuram",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.9982,
+    "longitude": 77.6891
+  },
+  {
+    "code": "WFD",
+    "name": "Whitefield",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.9961,
+    "longitude": 77.7583
+  },
+  {
+    "code": "BWT",
+    "name": "Bangarapet Junction",
+    "city": "Kolar",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.9989,
+    "longitude": 78.2014
+  },
+  {
+    "code": "MYS",
+    "name": "Mysuru Junction",
+    "city": "Mysuru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 12.3162,
+    "longitude": 76.6438
+  },
+  {
+    "code": "UBL",
+    "name": "SSS Hubballi Junction",
+    "city": "Hubballi",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 15.3444,
+    "longitude": 75.1481
+  },
+  {
+    "code": "DWR",
+    "name": "Dharwad",
+    "city": "Dharwad",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 15.4589,
+    "longitude": 75.0078
+  },
+  {
+    "code": "DVG",
+    "name": "Davangere",
+    "city": "Davangere",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 14.4644,
+    "longitude": 75.9218
+  },
+  {
+    "code": "BAY",
+    "name": "Ballari Junction",
+    "city": "Ballari",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 15.1444,
+    "longitude": 76.9214
+  },
+  {
+    "code": "HPT",
+    "name": "Hosapete Junction (Hampi)",
+    "city": "Hosapete",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 15.2711,
+    "longitude": 76.3867
+  },
+  {
+    "code": "BGM",
+    "name": "Belagavi",
+    "city": "Belagavi",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 15.8497,
+    "longitude": 74.5089
+  },
+  {
+    "code": "MAJN",
+    "name": "Mangaluru Junction",
+    "city": "Mangaluru",
+    "state": "Karnataka",
+    "zone": "SR",
+    "latitude": 12.8681,
+    "longitude": 74.8722
+  },
+  {
+    "code": "MAQ",
+    "name": "Mangaluru Central",
+    "city": "Mangaluru",
+    "state": "Karnataka",
+    "zone": "SR",
+    "latitude": 12.8622,
+    "longitude": 74.8398
+  },
+  {
+    "code": "HAS",
+    "name": "Hassan Junction",
+    "city": "Hassan",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 13.0072,
+    "longitude": 76.1028
+  },
+  {
+    "code": "ASK",
+    "name": "Arsikere Junction",
+    "city": "Arsikere",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 13.3134,
+    "longitude": 76.2572
+  },
+  {
+    "code": "TK",
+    "name": "Tumakuru",
+    "city": "Tumakuru",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 13.3422,
+    "longitude": 77.1017
+  },
+  {
+    "code": "BJP",
+    "name": "Vijayapura",
+    "city": "Vijayapura",
+    "state": "Karnataka",
+    "zone": "SWR",
+    "latitude": 16.8302,
+    "longitude": 75.71
+  },
+  {
+    "code": "KLBG",
+    "name": "Kalaburagi Junction",
+    "city": "Kalaburagi",
+    "state": "Karnataka",
+    "zone": "CR",
+    "latitude": 17.3325,
+    "longitude": 76.8344
+  },
+  {
+    "code": "SUR",
+    "name": "Solapur",
+    "city": "Solapur",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 17.6599,
+    "longitude": 75.9064
+  },
+  {
+    "code": "MAS",
+    "name": "Puratchi Thalaivar Dr. M.G.R. Central (Chennai)",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 13.0827,
+    "longitude": 80.2755
+  },
+  {
+    "code": "MS",
+    "name": "Chennai Egmore",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 13.0784,
+    "longitude": 80.2612
+  },
+  {
+    "code": "TBM",
+    "name": "Tambaram",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 12.926,
+    "longitude": 80.12
+  },
+  {
+    "code": "KPD",
+    "name": "Katpadi Junction",
+    "city": "Vellore",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 12.9734,
+    "longitude": 79.1386
+  },
+  {
+    "code": "AJJ",
+    "name": "Arakkonam Junction",
+    "city": "Arakkonam",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 13.0833,
+    "longitude": 79.6667
+  },
+  {
+    "code": "JTJ",
+    "name": "Jolarpettai Junction",
+    "city": "Jolarpettai",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 12.5647,
+    "longitude": 78.5806
+  },
+  {
+    "code": "SA",
+    "name": "Salem Junction",
+    "city": "Salem",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 11.6643,
+    "longitude": 78.146
+  },
+  {
+    "code": "ED",
+    "name": "Erode Junction",
+    "city": "Erode",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 11.341,
+    "longitude": 77.7172
+  },
+  {
+    "code": "TUP",
+    "name": "Tiruppur",
+    "city": "Tiruppur",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 11.1085,
+    "longitude": 77.3411
+  },
+  {
+    "code": "CBE",
+    "name": "Coimbatore Junction",
+    "city": "Coimbatore",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 11.0016,
+    "longitude": 76.9628
+  },
+  {
+    "code": "MDU",
+    "name": "Madurai Junction",
+    "city": "Madurai",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 9.9197,
+    "longitude": 78.1114
+  },
+  {
+    "code": "TPJ",
+    "name": "Tiruchchirappalli Junction",
+    "city": "Tiruchirappalli",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 10.7933,
+    "longitude": 78.6833
+  },
+  {
+    "code": "TEN",
+    "name": "Tirunelveli Junction",
+    "city": "Tirunelveli",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 8.7139,
+    "longitude": 77.7289
+  },
+  {
+    "code": "DG",
+    "name": "Dindigul Junction",
+    "city": "Dindigul",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 10.3673,
+    "longitude": 77.9803
+  },
+  {
+    "code": "CVP",
+    "name": "Kovilpatti",
+    "city": "Kovilpatti",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 9.1728,
+    "longitude": 77.8689
+  },
+  {
+    "code": "CAPE",
+    "name": "Kanniyakumari",
+    "city": "Kanyakumari",
+    "state": "Tamil Nadu",
+    "zone": "SR",
+    "latitude": 8.0883,
+    "longitude": 77.5385
+  },
+  {
+    "code": "TVC",
+    "name": "Thiruvananthapuram Central",
+    "city": "Thiruvananthapuram",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 8.4875,
+    "longitude": 76.9532
+  },
+  {
+    "code": "QLN",
+    "name": "Kollam Junction",
+    "city": "Kollam",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 8.8872,
+    "longitude": 76.5956
+  },
+  {
+    "code": "CNGR",
+    "name": "Chengannur",
+    "city": "Chengannur",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 9.3175,
+    "longitude": 76.6186
+  },
+  {
+    "code": "KTYM",
+    "name": "Kottayam",
+    "city": "Kottayam",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 9.5916,
+    "longitude": 76.5222
+  },
+  {
+    "code": "ALLP",
+    "name": "Alappuzha",
+    "city": "Alappuzha",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 9.4925,
+    "longitude": 76.3264
+  },
+  {
+    "code": "ERS",
+    "name": "Ernakulam Junction (South)",
+    "city": "Kochi",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 9.9678,
+    "longitude": 76.29
+  },
+  {
+    "code": "ERN",
+    "name": "Ernakulam Town (North)",
+    "city": "Kochi",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 9.9926,
+    "longitude": 76.2889
+  },
+  {
+    "code": "AWY",
+    "name": "Aluva",
+    "city": "Kochi",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 10.1076,
+    "longitude": 76.3533
+  },
+  {
+    "code": "TCR",
+    "name": "Thrissur",
+    "city": "Thrissur",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 10.5186,
+    "longitude": 76.2117
+  },
+  {
+    "code": "SRR",
+    "name": "Shoranur Junction",
+    "city": "Shoranur",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 10.7612,
+    "longitude": 76.275
+  },
+  {
+    "code": "PGT",
+    "name": "Palakkad Junction",
+    "city": "Palakkad",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 10.7725,
+    "longitude": 76.6547
+  },
+  {
+    "code": "TIR",
+    "name": "Tirur",
+    "city": "Tirur",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 10.9167,
+    "longitude": 75.9222
+  },
+  {
+    "code": "CLT",
+    "name": "Kozhikode Main",
+    "city": "Kozhikode",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 11.2483,
+    "longitude": 75.7839
+  },
+  {
+    "code": "CAN",
+    "name": "Kannur",
+    "city": "Kannur",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 11.8745,
+    "longitude": 75.3704
+  },
+  {
+    "code": "KGQ",
+    "name": "Kasaragod",
+    "city": "Kasaragod",
+    "state": "Kerala",
+    "zone": "SR",
+    "latitude": 12.4996,
+    "longitude": 74.9869
+  },
+  {
+    "code": "SC",
+    "name": "Secunderabad Junction",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "zone": "SCR",
+    "latitude": 17.4344,
+    "longitude": 78.5015
+  },
+  {
+    "code": "HYB",
+    "name": "Hyderabad Deccan (Nampally)",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "zone": "SCR",
+    "latitude": 17.3917,
+    "longitude": 78.4678
+  },
+  {
+    "code": "KCG",
+    "name": "Kacheguda",
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "zone": "SCR",
+    "latitude": 17.3878,
+    "longitude": 78.4983
+  },
+  {
+    "code": "KZJ",
+    "name": "Kazipet Junction",
+    "city": "Warangal",
+    "state": "Telangana",
+    "zone": "SCR",
+    "latitude": 17.9789,
+    "longitude": 79.5211
+  },
+  {
+    "code": "WL",
+    "name": "Warangal",
+    "city": "Warangal",
+    "state": "Telangana",
+    "zone": "SCR",
+    "latitude": 17.9689,
+    "longitude": 79.6011
+  },
+  {
+    "code": "KRNT",
+    "name": "Kurnool City",
+    "city": "Kurnool",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 15.8281,
+    "longitude": 78.0373
+  },
+  {
+    "code": "GTL",
+    "name": "Guntakal Junction",
+    "city": "Guntakal",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 15.1667,
+    "longitude": 77.3667
+  },
+  {
+    "code": "ATP",
+    "name": "Anantapur",
+    "city": "Anantapur",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 14.6819,
+    "longitude": 77.6006
+  },
+  {
+    "code": "DHNE",
+    "name": "Dhone Junction",
+    "city": "Dhone",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 15.4222,
+    "longitude": 77.8731
+  },
+  {
+    "code": "BZA",
+    "name": "Vijayawada Junction",
+    "city": "Vijayawada",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 16.5186,
+    "longitude": 80.6198
+  },
+  {
+    "code": "GNT",
+    "name": "Guntur Junction",
+    "city": "Guntur",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 16.2994,
+    "longitude": 80.4439
+  },
+  {
+    "code": "EE",
+    "name": "Eluru",
+    "city": "Eluru",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 16.71,
+    "longitude": 81.1
+  },
+  {
+    "code": "RJY",
+    "name": "Rajahmundry",
+    "city": "Rajahmundry",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 17.0005,
+    "longitude": 81.777
+  },
+  {
+    "code": "SLO",
+    "name": "Samalkot Junction",
+    "city": "Kakinada",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 17.05,
+    "longitude": 82.1667
+  },
+  {
+    "code": "VSKP",
+    "name": "Visakhapatnam Junction",
+    "city": "Visakhapatnam",
+    "state": "Andhra Pradesh",
+    "zone": "ECoR",
+    "latitude": 17.7215,
+    "longitude": 83.2872
+  },
+  {
+    "code": "VZM",
+    "name": "Vizianagaram Junction",
+    "city": "Vizianagaram",
+    "state": "Andhra Pradesh",
+    "zone": "ECoR",
+    "latitude": 18.1167,
+    "longitude": 83.4167
+  },
+  {
+    "code": "OGL",
+    "name": "Ongole",
+    "city": "Ongole",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 15.5057,
+    "longitude": 80.0499
+  },
+  {
+    "code": "NLR",
+    "name": "Nellore",
+    "city": "Nellore",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 14.4426,
+    "longitude": 79.9865
+  },
+  {
+    "code": "GDR",
+    "name": "Gudur Junction",
+    "city": "Gudur",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 14.15,
+    "longitude": 79.85
+  },
+  {
+    "code": "RU",
+    "name": "Renigunta Junction",
+    "city": "Tirupati",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 13.6333,
+    "longitude": 79.5167
+  },
+  {
+    "code": "TPTY",
+    "name": "Tirupati",
+    "city": "Tirupati",
+    "state": "Andhra Pradesh",
+    "zone": "SCR",
+    "latitude": 13.6288,
+    "longitude": 79.4192
+  },
+  {
+    "code": "CSMT",
+    "name": "Chhatrapati Shivaji Maharaj Terminus",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 18.9402,
+    "longitude": 72.8356
+  },
+  {
+    "code": "MMCT",
+    "name": "Mumbai Central",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "zone": "WR",
+    "latitude": 18.9696,
+    "longitude": 72.8193
+  },
+  {
+    "code": "BDTS",
+    "name": "Bandra Terminus",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "zone": "WR",
+    "latitude": 19.0607,
+    "longitude": 72.8407
+  },
+  {
+    "code": "LTT",
+    "name": "Lokmanya Tilak Terminus",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.0697,
+    "longitude": 72.8906
+  },
+  {
+    "code": "DDR",
+    "name": "Dadar Central",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.0178,
+    "longitude": 72.8478
+  },
+  {
+    "code": "TNA",
+    "name": "Thane",
+    "city": "Thane",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.186,
+    "longitude": 72.9759
+  },
+  {
+    "code": "KYN",
+    "name": "Kalyan Junction",
+    "city": "Kalyan",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.2437,
+    "longitude": 73.1355
+  },
+  {
+    "code": "PNVL",
+    "name": "Panvel Junction",
+    "city": "Navi Mumbai",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 18.9894,
+    "longitude": 73.1175
+  },
+  {
+    "code": "LNL",
+    "name": "Lonavala",
+    "city": "Lonavala",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 18.7557,
+    "longitude": 73.4091
+  },
+  {
+    "code": "PUNE",
+    "name": "Pune Junction",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 18.5284,
+    "longitude": 73.8739
+  },
+  {
+    "code": "DD",
+    "name": "Daund Junction",
+    "city": "Daund",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 18.4639,
+    "longitude": 74.5828
+  },
+  {
+    "code": "MRJ",
+    "name": "Miraj Junction",
+    "city": "Miraj",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 16.8333,
+    "longitude": 74.65
+  },
+  {
+    "code": "KOP",
+    "name": "Chhatrapati Shahu Maharaj Terminus (Kolhapur)",
+    "city": "Kolhapur",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 16.7028,
+    "longitude": 74.2408
+  },
+  {
+    "code": "BSL",
+    "name": "Bhusaval Junction",
+    "city": "Bhusawal",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 21.0456,
+    "longitude": 75.7872
+  },
+  {
+    "code": "JL",
+    "name": "Jalgaon Junction",
+    "city": "Jalgaon",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 21.0077,
+    "longitude": 75.5626
+  },
+  {
+    "code": "MMR",
+    "name": "Manmad Junction",
+    "city": "Manmad",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 20.25,
+    "longitude": 74.4333
+  },
+  {
+    "code": "NK",
+    "name": "Nashik Road",
+    "city": "Nashik",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.9575,
+    "longitude": 73.8344
+  },
+  {
+    "code": "IGP",
+    "name": "Igatpuri",
+    "city": "Igatpuri",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.6975,
+    "longitude": 73.5606
+  },
+  {
+    "code": "NGP",
+    "name": "Nagpur Junction",
+    "city": "Nagpur",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 21.1524,
+    "longitude": 79.0888
+  },
+  {
+    "code": "WR",
+    "name": "Wardha Junction",
+    "city": "Wardha",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 20.7453,
+    "longitude": 78.6022
+  },
+  {
+    "code": "BD",
+    "name": "Badnera Junction (Amravati)",
+    "city": "Amravati",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 20.8581,
+    "longitude": 77.7289
+  },
+  {
+    "code": "AK",
+    "name": "Akola Junction",
+    "city": "Akola",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 20.7097,
+    "longitude": 77.0089
+  },
+  {
+    "code": "CD",
+    "name": "Chandrapur",
+    "city": "Chandrapur",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.95,
+    "longitude": 79.3
+  },
+  {
+    "code": "BPQ",
+    "name": "Balharshah Junction",
+    "city": "Ballarpur",
+    "state": "Maharashtra",
+    "zone": "CR",
+    "latitude": 19.85,
+    "longitude": 79.35
+  },
+  {
+    "code": "RN",
+    "name": "Ratnagiri",
+    "city": "Ratnagiri",
+    "state": "Maharashtra",
+    "zone": "KR",
+    "latitude": 16.9944,
+    "longitude": 73.3333
+  },
+  {
+    "code": "MAO",
+    "name": "Madgaon Junction",
+    "city": "Margao",
+    "state": "Goa",
+    "zone": "KR",
+    "latitude": 15.2736,
+    "longitude": 73.9789
+  },
+  {
+    "code": "KRMI",
+    "name": "Karmali",
+    "city": "Panaji",
+    "state": "Goa",
+    "zone": "KR",
+    "latitude": 15.4981,
+    "longitude": 73.9214
+  },
+  {
+    "code": "THVM",
+    "name": "Thivim",
+    "city": "Mapusa",
+    "state": "Goa",
+    "zone": "KR",
+    "latitude": 15.6083,
+    "longitude": 73.8417
+  },
+  {
+    "code": "ADI",
+    "name": "Ahmedabad Junction",
+    "city": "Ahmedabad",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 23.0225,
+    "longitude": 72.5714
+  },
+  {
+    "code": "BRC",
+    "name": "Vadodara Junction",
+    "city": "Vadodara",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 22.3107,
+    "longitude": 73.1812
+  },
+  {
+    "code": "ST",
+    "name": "Surat",
+    "city": "Surat",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 21.2049,
+    "longitude": 72.8406
+  },
+  {
+    "code": "ANND",
+    "name": "Anand Junction",
+    "city": "Anand",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 22.5644,
+    "longitude": 72.9289
+  },
+  {
+    "code": "ND",
+    "name": "Nadiad Junction",
+    "city": "Nadiad",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 22.6917,
+    "longitude": 72.8639
+  },
+  {
+    "code": "BH",
+    "name": "Bharuch Junction",
+    "city": "Bharuch",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 21.7051,
+    "longitude": 72.9959
+  },
+  {
+    "code": "BL",
+    "name": "Valsad",
+    "city": "Valsad",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 20.61,
+    "longitude": 72.9267
+  },
+  {
+    "code": "VAPI",
+    "name": "Vapi",
+    "city": "Vapi",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 20.37,
+    "longitude": 72.91
+  },
+  {
+    "code": "RJT",
+    "name": "Rajkot Junction",
+    "city": "Rajkot",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 22.3082,
+    "longitude": 70.8007
+  },
+  {
+    "code": "JAM",
+    "name": "Jamnagar",
+    "city": "Jamnagar",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 22.4707,
+    "longitude": 70.0577
+  },
+  {
+    "code": "BVC",
+    "name": "Bhavnagar Terminus",
+    "city": "Bhavnagar",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 21.7645,
+    "longitude": 72.1519
+  },
+  {
+    "code": "GIMB",
+    "name": "Gandhidham Junction",
+    "city": "Gandhidham",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 23.0767,
+    "longitude": 70.1333
+  },
+  {
+    "code": "BHUJ",
+    "name": "Bhuj",
+    "city": "Bhuj",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 23.25,
+    "longitude": 69.67
+  },
+  {
+    "code": "GNC",
+    "name": "Gandhinagar Capital",
+    "city": "Gandhinagar",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 23.2356,
+    "longitude": 72.6397
+  },
+  {
+    "code": "MSH",
+    "name": "Mahesana Junction",
+    "city": "Mehsana",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 23.6,
+    "longitude": 72.4
+  },
+  {
+    "code": "PNU",
+    "name": "Palanpur Junction",
+    "city": "Palanpur",
+    "state": "Gujarat",
+    "zone": "WR",
+    "latitude": 24.1717,
+    "longitude": 72.4389
+  },
+  {
+    "code": "NDLS",
+    "name": "New Delhi",
+    "city": "New Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.6427,
+    "longitude": 77.2195
+  },
+  {
+    "code": "DLI",
+    "name": "Old Delhi Junction",
+    "city": "Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.6606,
+    "longitude": 77.2294
+  },
+  {
+    "code": "NZM",
+    "name": "Hazrat Nizamuddin",
+    "city": "New Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.5888,
+    "longitude": 77.2536
+  },
+  {
+    "code": "ANVT",
+    "name": "Anand Vihar Terminal",
+    "city": "Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.6469,
+    "longitude": 77.316
+  },
+  {
+    "code": "DEC",
+    "name": "Delhi Cantt",
+    "city": "Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.5911,
+    "longitude": 77.1211
+  },
+  {
+    "code": "DEE",
+    "name": "Delhi Sarai Rohilla",
+    "city": "Delhi",
+    "state": "Delhi",
+    "zone": "NR",
+    "latitude": 28.6617,
+    "longitude": 77.1817
+  },
+  {
+    "code": "GZB",
+    "name": "Ghaziabad Junction",
+    "city": "Ghaziabad",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 28.6692,
+    "longitude": 77.4538
+  },
+  {
+    "code": "LKO",
+    "name": "Lucknow Charbagh NR",
+    "city": "Lucknow",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 26.8317,
+    "longitude": 80.9197
+  },
+  {
+    "code": "LJN",
+    "name": "Lucknow Junction NER",
+    "city": "Lucknow",
+    "state": "Uttar Pradesh",
+    "zone": "NER",
+    "latitude": 26.8322,
+    "longitude": 80.9189
+  },
+  {
+    "code": "CNB",
+    "name": "Kanpur Central",
+    "city": "Kanpur",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 26.4542,
+    "longitude": 80.3503
+  },
+  {
+    "code": "AGC",
+    "name": "Agra Cantt",
+    "city": "Agra",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 27.1597,
+    "longitude": 78.0069
+  },
+  {
+    "code": "AF",
+    "name": "Agra Fort",
+    "city": "Agra",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 27.1814,
+    "longitude": 78.0169
+  },
+  {
+    "code": "MTJ",
+    "name": "Mathura Junction",
+    "city": "Mathura",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 27.4925,
+    "longitude": 77.6736
+  },
+  {
+    "code": "ALJN",
+    "name": "Aligarh Junction",
+    "city": "Aligarh",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 27.8972,
+    "longitude": 78.0881
+  },
+  {
+    "code": "TDL",
+    "name": "Tundla Junction",
+    "city": "Tundla",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 27.2081,
+    "longitude": 78.2439
+  },
+  {
+    "code": "ETW",
+    "name": "Etawah Junction",
+    "city": "Etawah",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 26.7761,
+    "longitude": 79.0267
+  },
+  {
+    "code": "PRYJ",
+    "name": "Prayagraj Junction (Allahabad)",
+    "city": "Prayagraj",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 25.4484,
+    "longitude": 81.8331
+  },
+  {
+    "code": "BSB",
+    "name": "Varanasi Junction",
+    "city": "Varanasi",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 25.3283,
+    "longitude": 82.9869
+  },
+  {
+    "code": "DDU",
+    "name": "Pt. Deen Dayal Upadhyaya Junction (Mughalsarai)",
+    "city": "Mughalsarai",
+    "state": "Uttar Pradesh",
+    "zone": "ECR",
+    "latitude": 25.2789,
+    "longitude": 83.1189
+  },
+  {
+    "code": "AY",
+    "name": "Ayodhya Dham Junction",
+    "city": "Ayodhya",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 26.7922,
+    "longitude": 82.1997
+  },
+  {
+    "code": "AYC",
+    "name": "Ayodhya Cantt",
+    "city": "Ayodhya",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 26.7744,
+    "longitude": 82.1333
+  },
+  {
+    "code": "GKP",
+    "name": "Gorakhpur Junction",
+    "city": "Gorakhpur",
+    "state": "Uttar Pradesh",
+    "zone": "NER",
+    "latitude": 26.7588,
+    "longitude": 83.3817
+  },
+  {
+    "code": "BE",
+    "name": "Bareilly Junction",
+    "city": "Bareilly",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 28.3439,
+    "longitude": 79.4144
+  },
+  {
+    "code": "MB",
+    "name": "Moradabad Junction",
+    "city": "Moradabad",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 28.8386,
+    "longitude": 78.7733
+  },
+  {
+    "code": "MTC",
+    "name": "Meerut City",
+    "city": "Meerut",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 28.98,
+    "longitude": 77.7
+  },
+  {
+    "code": "SRE",
+    "name": "Saharanpur Junction",
+    "city": "Saharanpur",
+    "state": "Uttar Pradesh",
+    "zone": "NR",
+    "latitude": 29.9642,
+    "longitude": 77.5461
+  },
+  {
+    "code": "VGLJ",
+    "name": "Virangana Lakshmibai Jhansi Junction",
+    "city": "Jhansi",
+    "state": "Uttar Pradesh",
+    "zone": "NCR",
+    "latitude": 25.4484,
+    "longitude": 78.5685
+  },
+  {
+    "code": "HW",
+    "name": "Haridwar Junction",
+    "city": "Haridwar",
+    "state": "Uttarakhand",
+    "zone": "NR",
+    "latitude": 29.9457,
+    "longitude": 78.1642
+  },
+  {
+    "code": "DDN",
+    "name": "Dehradun",
+    "city": "Dehradun",
+    "state": "Uttarakhand",
+    "zone": "NR",
+    "latitude": 30.3156,
+    "longitude": 78.0322
+  },
+  {
+    "code": "KGM",
+    "name": "Kathgodam",
+    "city": "Haldwani",
+    "state": "Uttarakhand",
+    "zone": "NER",
+    "latitude": 29.2736,
+    "longitude": 79.5447
+  },
+  {
+    "code": "CDG",
+    "name": "Chandigarh Junction",
+    "city": "Chandigarh",
+    "state": "Chandigarh",
+    "zone": "NR",
+    "latitude": 30.7046,
+    "longitude": 76.8277
+  },
+  {
+    "code": "UMB",
+    "name": "Ambala Cantt Junction",
+    "city": "Ambala",
+    "state": "Haryana",
+    "zone": "NR",
+    "latitude": 30.3608,
+    "longitude": 76.8275
+  },
+  {
+    "code": "LDH",
+    "name": "Ludhiana Junction",
+    "city": "Ludhiana",
+    "state": "Punjab",
+    "zone": "NR",
+    "latitude": 30.901,
+    "longitude": 75.8573
+  },
+  {
+    "code": "JUC",
+    "name": "Jalandhar City",
+    "city": "Jalandhar",
+    "state": "Punjab",
+    "zone": "NR",
+    "latitude": 31.326,
+    "longitude": 75.5762
+  },
+  {
+    "code": "ASR",
+    "name": "Amritsar Junction",
+    "city": "Amritsar",
+    "state": "Punjab",
+    "zone": "NR",
+    "latitude": 31.634,
+    "longitude": 74.8723
+  },
+  {
+    "code": "PTK",
+    "name": "Pathankot Junction",
+    "city": "Pathankot",
+    "state": "Punjab",
+    "zone": "NR",
+    "latitude": 32.2686,
+    "longitude": 75.6522
+  },
+  {
+    "code": "JAT",
+    "name": "Jammu Tawi",
+    "city": "Jammu",
+    "state": "Jammu and Kashmir",
+    "zone": "NR",
+    "latitude": 32.706,
+    "longitude": 74.8797
+  },
+  {
+    "code": "UHP",
+    "name": "Mata Vaishno Devi Katra (SVDK)",
+    "city": "Katra",
+    "state": "Jammu and Kashmir",
+    "zone": "NR",
+    "latitude": 32.99,
+    "longitude": 74.93
+  },
+  {
+    "code": "KLK",
+    "name": "Kalka",
+    "city": "Kalka",
+    "state": "Haryana",
+    "zone": "NR",
+    "latitude": 30.8333,
+    "longitude": 76.9333
+  },
+  {
+    "code": "ROK",
+    "name": "Rohtak Junction",
+    "city": "Rohtak",
+    "state": "Haryana",
+    "zone": "NR",
+    "latitude": 28.8955,
+    "longitude": 76.6066
+  },
+  {
+    "code": "HSR",
+    "name": "Hisar",
+    "city": "Hisar",
+    "state": "Haryana",
+    "zone": "NWR",
+    "latitude": 29.1539,
+    "longitude": 75.7229
+  },
+  {
+    "code": "JP",
+    "name": "Jaipur Junction",
+    "city": "Jaipur",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 26.9196,
+    "longitude": 75.7878
+  },
+  {
+    "code": "JU",
+    "name": "Jodhpur Junction",
+    "city": "Jodhpur",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 26.2833,
+    "longitude": 73.0167
+  },
+  {
+    "code": "AII",
+    "name": "Ajmer Junction",
+    "city": "Ajmer",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 26.4499,
+    "longitude": 74.6399
+  },
+  {
+    "code": "BKN",
+    "name": "Bikaner Junction",
+    "city": "Bikaner",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 28.0229,
+    "longitude": 73.3119
+  },
+  {
+    "code": "UDZ",
+    "name": "Udaipur City",
+    "city": "Udaipur",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 24.5854,
+    "longitude": 73.7125
+  },
+  {
+    "code": "KOTA",
+    "name": "Kota Junction",
+    "city": "Kota",
+    "state": "Rajasthan",
+    "zone": "WCR",
+    "latitude": 25.2138,
+    "longitude": 75.8648
+  },
+  {
+    "code": "SWM",
+    "name": "Sawai Madhopur Junction",
+    "city": "Sawai Madhopur",
+    "state": "Rajasthan",
+    "zone": "WCR",
+    "latitude": 25.9928,
+    "longitude": 76.3572
+  },
+  {
+    "code": "ABR",
+    "name": "Abu Road",
+    "city": "Abu Road",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 24.4833,
+    "longitude": 72.7833
+  },
+  {
+    "code": "BHL",
+    "name": "Bhilwara",
+    "city": "Bhilwara",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 25.35,
+    "longitude": 74.6333
+  },
+  {
+    "code": "ALWAR",
+    "name": "Alwar Junction",
+    "city": "Alwar",
+    "state": "Rajasthan",
+    "zone": "NWR",
+    "latitude": 27.57,
+    "longitude": 76.6
+  },
+  {
+    "code": "BPL",
+    "name": "Bhopal Junction",
+    "city": "Bhopal",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 23.2599,
+    "longitude": 77.4126
+  },
+  {
+    "code": "RKMP",
+    "name": "Rani Kamalapati (Habibganj)",
+    "city": "Bhopal",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 23.2081,
+    "longitude": 77.4339
+  },
+  {
+    "code": "INDB",
+    "name": "Indore Junction",
+    "city": "Indore",
+    "state": "Madhya Pradesh",
+    "zone": "WR",
+    "latitude": 22.7196,
+    "longitude": 75.8577
+  },
+  {
+    "code": "UJN",
+    "name": "Ujjain Junction",
+    "city": "Ujjain",
+    "state": "Madhya Pradesh",
+    "zone": "WR",
+    "latitude": 23.1765,
+    "longitude": 75.7885
+  },
+  {
+    "code": "GWL",
+    "name": "Gwalior Junction",
+    "city": "Gwalior",
+    "state": "Madhya Pradesh",
+    "zone": "NCR",
+    "latitude": 26.2183,
+    "longitude": 78.1828
+  },
+  {
+    "code": "JBP",
+    "name": "Jabalpur Junction",
+    "city": "Jabalpur",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 23.1686,
+    "longitude": 79.9339
+  },
+  {
+    "code": "ET",
+    "name": "Itarsi Junction",
+    "city": "Itarsi",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 22.6125,
+    "longitude": 77.7611
+  },
+  {
+    "code": "KTE",
+    "name": "Katni Junction",
+    "city": "Katni",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 23.8344,
+    "longitude": 80.4
+  },
+  {
+    "code": "STA",
+    "name": "Satna Junction",
+    "city": "Satna",
+    "state": "Madhya Pradesh",
+    "zone": "WCR",
+    "latitude": 24.58,
+    "longitude": 80.83
+  },
+  {
+    "code": "R",
+    "name": "Raipur Junction",
+    "city": "Raipur",
+    "state": "Chhattisgarh",
+    "zone": "SECR",
+    "latitude": 21.2514,
+    "longitude": 81.6296
+  },
+  {
+    "code": "BSP",
+    "name": "Bilaspur Junction",
+    "city": "Bilaspur",
+    "state": "Chhattisgarh",
+    "zone": "SECR",
+    "latitude": 22.0797,
+    "longitude": 82.1409
+  },
+  {
+    "code": "DURG",
+    "name": "Durg Junction",
+    "city": "Durg",
+    "state": "Chhattisgarh",
+    "zone": "SECR",
+    "latitude": 21.19,
+    "longitude": 81.28
+  },
+  {
+    "code": "PNBE",
+    "name": "Patna Junction",
+    "city": "Patna",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 25.6022,
+    "longitude": 85.1376
+  },
+  {
+    "code": "DNR",
+    "name": "Danapur",
+    "city": "Patna",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 25.6317,
+    "longitude": 85.0442
+  },
+  {
+    "code": "PPTA",
+    "name": "Patliputra Junction",
+    "city": "Patna",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 25.6417,
+    "longitude": 85.0931
+  },
+  {
+    "code": "GAYA",
+    "name": "Gaya Junction",
+    "city": "Gaya",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 24.7914,
+    "longitude": 84.9997
+  },
+  {
+    "code": "MFP",
+    "name": "Muzaffarpur Junction",
+    "city": "Muzaffarpur",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 26.1209,
+    "longitude": 85.3906
+  },
+  {
+    "code": "DBG",
+    "name": "Darbhanga Junction",
+    "city": "Darbhanga",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 26.1542,
+    "longitude": 85.8919
+  },
+  {
+    "code": "BJU",
+    "name": "Barauni Junction",
+    "city": "Barauni",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 25.4747,
+    "longitude": 85.9739
+  },
+  {
+    "code": "BGS",
+    "name": "Begusarai",
+    "city": "Begusarai",
+    "state": "Bihar",
+    "zone": "ECR",
+    "latitude": 25.4181,
+    "longitude": 86.1333
+  },
+  {
+    "code": "KIR",
+    "name": "Katihar Junction",
+    "city": "Katihar",
+    "state": "Bihar",
+    "zone": "NFR",
+    "latitude": 25.5414,
+    "longitude": 87.5711
+  },
+  {
+    "code": "CPR",
+    "name": "Chhapra Junction",
+    "city": "Chhapra",
+    "state": "Bihar",
+    "zone": "NER",
+    "latitude": 25.7797,
+    "longitude": 84.7275
+  },
+  {
+    "code": "RNC",
+    "name": "Ranchi Junction",
+    "city": "Ranchi",
+    "state": "Jharkhand",
+    "zone": "SER",
+    "latitude": 23.3441,
+    "longitude": 85.324
+  },
+  {
+    "code": "HTE",
+    "name": "Hatia",
+    "city": "Ranchi",
+    "state": "Jharkhand",
+    "zone": "SER",
+    "latitude": 23.31,
+    "longitude": 85.31
+  },
+  {
+    "code": "TATA",
+    "name": "Tatanagar Junction",
+    "city": "Jamshedpur",
+    "state": "Jharkhand",
+    "zone": "SER",
+    "latitude": 22.7681,
+    "longitude": 86.2028
+  },
+  {
+    "code": "DHN",
+    "name": "Dhanbad Junction",
+    "city": "Dhanbad",
+    "state": "Jharkhand",
+    "zone": "ECR",
+    "latitude": 23.7957,
+    "longitude": 86.4304
+  },
+  {
+    "code": "BKSC",
+    "name": "Bokaro Steel City",
+    "city": "Bokaro",
+    "state": "Jharkhand",
+    "zone": "SER",
+    "latitude": 23.6694,
+    "longitude": 86.1511
+  },
+  {
+    "code": "HWH",
+    "name": "Howrah Junction",
+    "city": "Kolkata",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 22.583,
+    "longitude": 88.3426
+  },
+  {
+    "code": "SDAH",
+    "name": "Sealdah",
+    "city": "Kolkata",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 22.5697,
+    "longitude": 88.3697
+  },
+  {
+    "code": "KOAA",
+    "name": "Kolkata Railway Station (Chitpur)",
+    "city": "Kolkata",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 22.6033,
+    "longitude": 88.3769
+  },
+  {
+    "code": "SRC",
+    "name": "Santragachi Junction",
+    "city": "Howrah",
+    "state": "West Bengal",
+    "zone": "SER",
+    "latitude": 22.5839,
+    "longitude": 88.2831
+  },
+  {
+    "code": "KGP",
+    "name": "Kharagpur Junction",
+    "city": "Kharagpur",
+    "state": "West Bengal",
+    "zone": "SER",
+    "latitude": 22.3389,
+    "longitude": 87.3214
+  },
+  {
+    "code": "ASN",
+    "name": "Asansol Junction",
+    "city": "Asansol",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 23.6889,
+    "longitude": 86.9661
+  },
+  {
+    "code": "DGR",
+    "name": "Durgapur",
+    "city": "Durgapur",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 23.4981,
+    "longitude": 87.3117
+  },
+  {
+    "code": "BWN",
+    "name": "Barddhaman Junction",
+    "city": "Bardhaman",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 23.2458,
+    "longitude": 87.8631
+  },
+  {
+    "code": "MLDT",
+    "name": "Malda Town",
+    "city": "Malda",
+    "state": "West Bengal",
+    "zone": "ER",
+    "latitude": 25.0089,
+    "longitude": 88.1364
+  },
+  {
+    "code": "NJP",
+    "name": "New Jalpaiguri Junction",
+    "city": "Siliguri",
+    "state": "West Bengal",
+    "zone": "NFR",
+    "latitude": 26.6853,
+    "longitude": 88.4419
+  },
+  {
+    "code": "BBS",
+    "name": "Bhubaneswar",
+    "city": "Bhubaneswar",
+    "state": "Odisha",
+    "zone": "ECoR",
+    "latitude": 20.2644,
+    "longitude": 85.8436
+  },
+  {
+    "code": "CTC",
+    "name": "Cuttack Junction",
+    "city": "Cuttack",
+    "state": "Odisha",
+    "zone": "ECoR",
+    "latitude": 20.4625,
+    "longitude": 85.8828
+  },
+  {
+    "code": "PURI",
+    "name": "Puri",
+    "city": "Puri",
+    "state": "Odisha",
+    "zone": "ECoR",
+    "latitude": 19.8133,
+    "longitude": 85.8314
+  },
+  {
+    "code": "ROU",
+    "name": "Rourkela Junction",
+    "city": "Rourkela",
+    "state": "Odisha",
+    "zone": "SER",
+    "latitude": 22.2269,
+    "longitude": 84.8589
+  },
+  {
+    "code": "SBP",
+    "name": "Sambalpur",
+    "city": "Sambalpur",
+    "state": "Odisha",
+    "zone": "ECoR",
+    "latitude": 21.4667,
+    "longitude": 83.9667
+  },
+  {
+    "code": "BAM",
+    "name": "Brahmapur",
+    "city": "Berhampur",
+    "state": "Odisha",
+    "zone": "ECoR",
+    "latitude": 19.3167,
+    "longitude": 84.7833
+  },
+  {
+    "code": "GHY",
+    "name": "Guwahati",
+    "city": "Guwahati",
+    "state": "Assam",
+    "zone": "NFR",
+    "latitude": 26.1822,
+    "longitude": 91.7511
+  },
+  {
+    "code": "KYQ",
+    "name": "Kamakhya Junction",
+    "city": "Guwahati",
+    "state": "Assam",
+    "zone": "NFR",
+    "latitude": 26.1558,
+    "longitude": 91.7067
+  },
+  {
+    "code": "NBQ",
+    "name": "New Bongaigaon Junction",
+    "city": "Bongaigaon",
+    "state": "Assam",
+    "zone": "NFR",
+    "latitude": 26.5,
+    "longitude": 90.55
+  },
+  {
+    "code": "DBRG",
+    "name": "Dibrugarh",
+    "city": "Dibrugarh",
+    "state": "Assam",
+    "zone": "NFR",
+    "latitude": 27.4833,
+    "longitude": 94.9167
+  },
+  {
+    "code": "LMG",
+    "name": "Lumding Junction",
+    "city": "Lumding",
+    "state": "Assam",
+    "zone": "NFR",
+    "latitude": 25.75,
+    "longitude": 93.1667
+  },
+  {
+    "code": "AGTL",
+    "name": "Agartala",
+    "city": "Agartala",
+    "state": "Tripura",
+    "zone": "NFR",
+    "latitude": 23.7917,
+    "longitude": 91.2722
+  },
+  {
+    "code": "DMV",
+    "name": "Dimapur",
+    "city": "Dimapur",
+    "state": "Nagaland",
+    "zone": "NFR",
+    "latitude": 25.9083,
+    "longitude": 93.7278
+  }
+]
