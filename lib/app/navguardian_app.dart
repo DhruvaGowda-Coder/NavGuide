@@ -128,11 +128,14 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
                 ),
               ),
             )
-          : switch (_index) {
-              0 => const HomeScreen(),
-              1 => const TrainTrackerScreen(),
-              _ => const UnionsScreen(),
-            },
+          : IndexedStack(
+              index: _index,
+              children: const [
+                HomeScreen(),
+                TrainTrackerScreen(),
+                UnionsScreen(),
+              ],
+            ),
     ),
     bottomNavigationBar: !_onboarded
         ? null

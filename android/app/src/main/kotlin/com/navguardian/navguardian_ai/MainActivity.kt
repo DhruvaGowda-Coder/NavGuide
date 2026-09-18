@@ -19,6 +19,11 @@ import android.telephony.CellSignalStrengthNr
 import android.telephony.CellSignalStrengthWcdma
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -26,6 +31,8 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.navguardian.ai/telephony"
+    private val ALARM_CHANNEL = "com.navguardian.ai/alarm"
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -38,6 +45,28 @@ class MainActivity : FlutterActivity() {
                         result.success(data)
                     } catch (e: Exception) {
                         result.error("TELEPHONY_ERROR", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ALARM_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "playAlarmSound" -> {
+                    try {
+                        playAlarmSound()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ALARM_ERROR", e.message, null)
+                    }
+                }
+                "stopAlarmSound" -> {
+                    try {
+                        stopAlarmSound()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ALARM_ERROR", e.message, null)
                     }
                 }
                 else -> result.notImplemented()
@@ -180,5 +209,66 @@ class MainActivity : FlutterActivity() {
             "mnc" to registeredMnc,
             "dbm" to signalDbm
         )
+    }
+
+    private fun playAlarmSound() {
+        stopAlarmSound()
+        try {
+            var alertUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            if (alertUri == null) {
+                alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            }
+            if (alertUri == null) {
+                alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            }
+
+            if (alertUri != null) {
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(applicationContext, alertUri)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        setAudioStreamType(AudioManager.STREAM_ALARM)
+                    }
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            }
+        } catch (e: Exception) {
+            try {
+                val notifUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                if (notifUri != null) {
+                    mediaPlayer = MediaPlayer.create(applicationContext, notifUri)?.apply {
+                        isLooping = true
+                        start()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun stopAlarmSound() {
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.reset()
+                it.release()
+            }
+            mediaPlayer = null
+        } catch (_: Exception) {}
+    }
+
+    override fun onDestroy() {
+        stopAlarmSound()
+        super.onDestroy()
     }
 }

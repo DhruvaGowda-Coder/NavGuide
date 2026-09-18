@@ -2575,6 +2575,18 @@ class TrainTrackingEngine {
     return [];
   }
 
+  /// Looks up a specific route by train number from cached or synthesized routes
+  TrainRoute? getRouteByNumber(String trainNumber) {
+    final clean = trainNumber.trim().replaceAll('#', '');
+    if (clean.isEmpty) return null;
+    for (final r in getAllRoutes()) {
+      if (r.trainNumber == clean) return r;
+    }
+    final results = searchTrains(clean);
+    return results.isNotEmpty ? results.first : null;
+  }
+
+
   /// Synthesizes authentic Indian Railways corridor services between ANY two stations in India
   List<TrainRoute> _synthesizeCorridorRoutes(RailwayStation s1, RailwayStation s2) {
     final directDist = haversineDistanceKm(s1.latitude, s1.longitude, s2.latitude, s2.longitude);

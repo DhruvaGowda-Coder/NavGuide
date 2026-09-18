@@ -207,46 +207,54 @@ class _CommunityHazardsScreenState extends ConsumerState<CommunityHazardsScreen>
                         ),
                     ],
                   )
-                : (filteredHazards.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                : RefreshIndicator(
+                    color: const Color(0xffb71c1c),
+                    onRefresh: _loadHazards,
+                    child: filteredHazards.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
                             children: [
-                              Icon(Icons.verified_outlined, size: 64, color: Colors.grey.shade400),
-                              const SizedBox(height: 16),
-                              Text(
-                                _filterType == null
-                                    ? 'No Hazards Reported'
-                                    : 'No ${_filterType!.displayName} Hazards',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'The community database is clear. Tap "Report Hazard" below to alert drivers if you spot road issues.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey, fontSize: 13),
-                              ),
-                              const SizedBox(height: 20),
-                              FilledButton.icon(
-                                style: FilledButton.styleFrom(backgroundColor: const Color(0xffb71c1c)),
-                                onPressed: _openReportModal,
-                                icon: const Icon(Icons.add_alert_rounded),
-                                label: const Text('Report Hazard'),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(32, 60, 32, 32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.verified_outlined, size: 64, color: Colors.grey.shade400),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _filterType == null
+                                          ? 'No Hazards Reported'
+                                          : 'No ${_filterType!.displayName} Hazards',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'The community database is clear. Tap "Report Hazard" below to alert drivers if you spot road issues.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    FilledButton.icon(
+                                      style: FilledButton.styleFrom(backgroundColor: const Color(0xffb71c1c)),
+                                      onPressed: _openReportModal,
+                                      icon: const Icon(Icons.add_alert_rounded),
+                                      label: const Text('Report Hazard'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
+                            itemCount: filteredHazards.length,
+                            itemBuilder: (ctx, idx) {
+                              final h = filteredHazards[idx];
+                              return _buildHazardCard(h);
+                            },
                           ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
-                        itemCount: filteredHazards.length,
-                        itemBuilder: (ctx, idx) {
-                          final h = filteredHazards[idx];
-                          return _buildHazardCard(h);
-                        },
-                      )),
+                  ),
           ),
         ],
       ),

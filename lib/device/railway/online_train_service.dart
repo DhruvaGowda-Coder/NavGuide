@@ -112,7 +112,23 @@ class OnlineTrainService {
     final halts = route.halts;
     final int delay = (now.minute % 3 == 0) ? 7 : (now.minute % 2 == 0 ? 0 : 4);
     final List<LiveStationStatus> liveStations = [];
+
+    // Dynamically calculate current station index based on real-world time of day!
     int currentIdx = 1;
+    final nowMins = now.hour * 60 + now.minute;
+    bool foundActive = false;
+
+    for (int i = 0; i < halts.length; i++) {
+      final depM = _parseTimeToMinutes(halts[i].departureTime) ?? _parseTimeToMinutes(halts[i].arrivalTime);
+      if (depM != null && nowMins <= depM + delay) {
+        currentIdx = i;
+        foundActive = true;
+        break;
+      }
+    }
+    if (!foundActive && halts.isNotEmpty) {
+      currentIdx = halts.length - 1; // Trip completed
+    }
 
     for (int i = 0; i < halts.length; i++) {
       final halt = halts[i];
@@ -135,10 +151,13 @@ class OnlineTrainService {
       );
     }
 
-    final currentHalt = halts.length > currentIdx ? halts[currentIdx] : halts.first;
-    final summary = delay <= 0
-        ? 'Train is running on Right Time (NTES Live)'
-        : 'Running ~$delay mins late approaching ${currentHalt.station.name}';
+    final currentHalt = halts.length > currentIdx ? halts[currentIdx] : halts.last;
+    final isTripComplete = currentIdx == halts.length - 1 && !foundActive;
+    final summary = isTripComplete
+        ? 'Trip completed • Arrived at ${currentHalt.station.name} (Destination)'
+        : (delay <= 0
+            ? 'Train is running on Right Time (NTES Live) • Approaching ${currentHalt.station.name}'
+            : 'Running ~$delay mins late • Approaching ${currentHalt.station.name}');
 
     return LiveTrainStatus(
       trainNumber: route.trainNumber,
@@ -169,5 +188,20 @@ class OnlineTrainService {
     } catch (_) {
       return timeStr;
     }
+  }
+
+  int? _parseTimeToMinutes(String timeStr) {
+    final clean = timeStr.trim().toUpperCase();
+    if (clean == 'SOURCE' || clean == 'DEST' || clean.isEmpty) return null;
+    final isPm = clean.contains('PM');
+    final isAm = clean.contains('AM');
+    final raw = clean.replaceAll('AM', '').replaceAll('PM', '').trim();
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    int h = int.tryParse(parts[0].trim()) ?? 0;
+    final m = int.tryParse(parts[1].trim()) ?? 0;
+    if (isPm && h < 12) h += 12;
+    if (isAm && h == 12) h = 0;
+    return h * 60 + m;
   }
 }

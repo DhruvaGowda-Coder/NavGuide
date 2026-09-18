@@ -100,6 +100,76 @@ class _UnionsScreenState extends State<UnionsScreen> {
     }
   }
 
+  Future<void> _confirmLeave(TravelUnionGroup union) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(children: [
+          Icon(Icons.logout_rounded, color: Colors.redAccent, size: 24),
+          SizedBox(width: 8),
+          Text('Exit Convoy?'),
+        ]),
+        content: Text('Are you sure you want to leave "${union.title}"?\nYou will no longer be a rider in this group.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Stay', style: TextStyle(color: textMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Leave Convoy'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _service.leaveUnion(union.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('You left "${union.title}".')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmKickMember(TravelUnionGroup union, UnionMember member) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(children: [
+          Icon(Icons.person_remove_rounded, color: Colors.redAccent, size: 24),
+          SizedBox(width: 8),
+          Text('Kick Rider?'),
+        ]),
+        content: Text('Remove "${member.name}" from "${union.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: textMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Kick Rider'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _service.kickMember(unionId: union.id, memberId: member.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${member.name}" was removed from the convoy.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final allUnions = _service.unions;
@@ -123,7 +193,15 @@ class _UnionsScreenState extends State<UnionsScreen> {
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      body: SafeArea(child: CustomScrollView(slivers: [
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: primaryEmerald,
+          onRefresh: () async {
+            await _service.syncWithFirebase();
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
         // Header
         SliverToBoxAdapter(child: Padding(
           padding: const EdgeInsets.fromLTRB(18,16,18,0),
@@ -262,6 +340,8 @@ class _UnionsScreenState extends State<UnionsScreen> {
               onRequestJoin: () => _openRequestJoin(u),
               onEdit: () => _openEdit(u),
               onDelete: () => _confirmDelete(u),
+              onLeave: () => _confirmLeave(u),
+              onKickMember: (m) => _confirmKickMember(u, m),
             );
           },
           childCount: visible.length,
@@ -282,10 +362,13 @@ class _UnionsScreenState extends State<UnionsScreen> {
             ),
           )),
 
-        const SliverToBoxAdapter(child: SizedBox(height:24)),
-      ])),
-    );
-  }
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+      ],
+    ),
+  ),
+),
+);
+}
 }
 
 // -- Union Card ----------------------------------------------------------------
@@ -299,6 +382,8 @@ class _UnionCard extends StatefulWidget {
   final VoidCallback onRequestJoin;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onLeave;
+  final void Function(UnionMember) onKickMember;
 
   const _UnionCard({
     required this.union,
@@ -309,6 +394,8 @@ class _UnionCard extends StatefulWidget {
     required this.onRequestJoin,
     required this.onEdit,
     required this.onDelete,
+    required this.onLeave,
+    required this.onKickMember,
   });
 
   @override
@@ -474,6 +561,13 @@ class _UnionCardState extends State<_UnionCard> {
                   IconButton(constraints: const BoxConstraints(minWidth:30, minHeight:30),
                     icon: const Icon(Icons.email_rounded, size:15, color: primaryEmerald),
                     onPressed: () => widget.onEmail(m.email)),
+                  if (widget.isOwner && m.email != u.hostEmail)
+                    IconButton(
+                      constraints: const BoxConstraints(minWidth:30, minHeight:30),
+                      icon: const Icon(Icons.person_remove_rounded, size:16, color: Colors.redAccent),
+                      tooltip: 'Kick Rider',
+                      onPressed: () => widget.onKickMember(m),
+                    ),
                 ]),
               )).toList())),
 
@@ -514,45 +608,80 @@ class _UnionCardState extends State<_UnionCard> {
 
     // 2. If user already joined
     if (widget.myStatus == UnionMemberStatus.accepted) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade200),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Joined · You are in this Convoy',
-              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
+      return Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Joined Convoy',
+                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: BorderSide(color: Colors.red.shade200),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            ),
+            icon: const Icon(Icons.logout_rounded, size: 16),
+            label: const Text('Exit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            onPressed: widget.onLeave,
+          ),
+        ],
       );
     }
 
     // 3. If request is pending approval
     if (widget.myStatus == UnionMemberStatus.pending) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange.shade200),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.orange.shade800),
-            const SizedBox(width: 8),
-            Text('Join Request Pending Host Approval',
-              style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
+      return Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.orange.shade800),
+                  const SizedBox(width: 8),
+                  Text('Pending Approval',
+                    style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: BorderSide(color: Colors.red.shade200),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            ),
+            onPressed: widget.onLeave,
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ),
+        ],
       );
     }
 

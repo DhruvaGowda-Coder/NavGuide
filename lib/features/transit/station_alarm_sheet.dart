@@ -44,6 +44,7 @@ class _StationAlarmSheetState extends State<StationAlarmSheet> {
   double _selectedTimeMins = 15.0;
   bool _enableVibration = true;
   bool _enableSound = true;
+  bool _isPreviewingSound = false;
 
   @override
   void initState() {
@@ -53,6 +54,24 @@ class _StationAlarmSheetState extends State<StationAlarmSheet> {
       _selectedStationCode = halts.last.station.code;
     } else {
       _selectedStationCode = widget.route.destinationStation.code;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_isPreviewingSound) {
+      TrainAlarmEngine().stopAlarmSound();
+    }
+    super.dispose();
+  }
+
+  void _toggleSoundPreview() async {
+    if (_isPreviewingSound) {
+      await TrainAlarmEngine().stopAlarmSound();
+      if (mounted) setState(() => _isPreviewingSound = false);
+    } else {
+      if (mounted) setState(() => _isPreviewingSound = true);
+      await TrainAlarmEngine().playAlarmSound();
     }
   }
 
@@ -339,12 +358,87 @@ class _StationAlarmSheetState extends State<StationAlarmSheet> {
                   value: _enableSound,
                   activeTrackColor: const Color(0xFF23695a).withValues(alpha: 0.5),
                   activeThumbColor: const Color(0xFF23695a),
-                  onChanged: (val) => setState(() => _enableSound = val),
+                  onChanged: (val) {
+                    setState(() => _enableSound = val);
+                    if (!val && _isPreviewingSound) {
+                      _toggleSoundPreview();
+                    }
+                  },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+
+          // Alarm Sound Preview & Test Box
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isPreviewingSound
+                  ? const Color(0xFF23695a).withValues(alpha: 0.08)
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _isPreviewingSound
+                    ? const Color(0xFF23695a).withValues(alpha: 0.4)
+                    : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _isPreviewingSound
+                        ? const Color(0xFF23695a)
+                        : const Color(0xFF23695a).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isPreviewingSound ? Icons.volume_up_rounded : Icons.notifications_active_outlined,
+                    color: _isPreviewingSound ? Colors.white : const Color(0xFF23695a),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isPreviewingSound ? 'Alarm Ringing Now' : 'Mobile Alarm Sound',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+                      ),
+                      Text(
+                        _isPreviewingSound ? 'Tap Stop to silence audio' : 'Listen / preview alarm sound',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _isPreviewingSound ? const Color(0xFF23695a) : Colors.grey.shade600,
+                          fontWeight: _isPreviewingSound ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isPreviewingSound ? Colors.red.shade600 : const Color(0xFF23695a),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  icon: Icon(_isPreviewingSound ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 16),
+                  label: Text(
+                    _isPreviewingSound ? 'Stop' : 'Listen',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _toggleSoundPreview,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
 
           // Set Alarm Button
           SizedBox(

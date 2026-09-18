@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../device/telephony/cell_tower_service.dart';
 import '../../device/railway/train_tracking_engine.dart';
@@ -90,42 +93,227 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
     _engine = ref.read(trainTrackingEngineProvider);
     await _engine.initialize();
 
-    // Initial clean state: Find Trains tab is shown first without preselected route
-    _selectedRoute = null;
     _fromStation = null;
     _toStation = null;
     _searchResults = [];
+
+    // Restore any active journey from persistent storage so it continues live!
+    await _restoreActiveJourney();
 
     if (mounted) {
       setState(() => _isLoading = false);
     }
 
-    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
-        _speedKmh = 64 + (timer.tick % 15);
-        if (_distanceToNextKm > 0.3) {
-          _distanceToNextKm = (_distanceToNextKm - 0.1).clamp(0.1, 999.0);
-        }
+        _speedKmh = 68 + (timer.tick % 10);
+        if (_selectedRoute != null) {
+          // Real-time progress: in 1 second at current speed, train moves along track
+          final distMoved = (_speedKmh / 3600.0) * 1.0;
+          if (_distanceToNextKm > 0.05) {
+            _distanceToNextKm = (_distanceToNextKm - distMoved).clamp(0.0, 999.0);
+          } else {
+            // Reached station — smoothly advance to next station along route
+            if (_currentStationIndex < _selectedRoute!.stations.length - 1) {
+              _currentStationIndex++;
+              _distanceToNextKm = _getLegDistance(_selectedRoute!, _currentStationIndex);
+              HapticFeedback.mediumImpact();
+            }
+          }
 
-        // Proximity evaluation for destination alarm
-        if (_selectedRoute != null && _currentStationIndex < _selectedRoute!.stations.length) {
-          final targetStation = _selectedRoute!.stations[_currentStationIndex];
-          final mins = ((_distanceToNextKm / (_speedKmh > 0 ? _speedKmh : 60)) * 60).round();
-          TrainAlarmEngine().evaluateProximity(
-            nextStationCode: targetStation.code,
-            distanceToNextKm: _distanceToNextKm,
-            estimatedMinsToNext: mins.toDouble(),
-            routeHalts: _selectedRoute?.halts,
-            currentStationIndex: _currentStationIndex,
-          );
+          // Proximity evaluation for destination alarm
+          if (_currentStationIndex < _selectedRoute!.stations.length) {
+            final targetStation = _selectedRoute!.stations[_currentStationIndex];
+            final mins = ((_distanceToNextKm / (_speedKmh > 0 ? _speedKmh : 60)) * 60).round();
+            TrainAlarmEngine().evaluateProximity(
+              nextStationCode: targetStation.code,
+              distanceToNextKm: _distanceToNextKm,
+              estimatedMinsToNext: mins.toDouble(),
+              routeHalts: _selectedRoute?.halts,
+              currentStationIndex: _currentStationIndex,
+            );
+          }
         }
       });
+
+      // Save journey snapshot every 5 seconds
+      if (timer.tick % 5 == 0) {
+        _saveActiveJourney();
+      }
     });
+  }
+
+  int? _parseTimeToMinutes(String timeStr) {
+    final clean = timeStr.trim().toUpperCase();
+    if (clean == 'SOURCE' || clean == 'DEST' || clean.isEmpty) return null;
+    final isPm = clean.contains('PM');
+    final isAm = clean.contains('AM');
+    final raw = clean.replaceAll('AM', '').replaceAll('PM', '').trim();
+    final parts = raw.split(':');
+    if (parts.length < 2) return null;
+    int h = int.tryParse(parts[0].trim()) ?? 0;
+    final m = int.tryParse(parts[1].trim()) ?? 0;
+    if (isPm && h < 12) h += 12;
+    if (isAm && h == 12) h = 0;
+    return h * 60 + m;
+  }
+
+  double _getLegDistance(TrainRoute route, int targetIndex) {
+    if (targetIndex > 0 && targetIndex < route.halts.length) {
+      final d = (route.halts[targetIndex].distanceKm - route.halts[targetIndex - 1].distanceKm).abs();
+      if (d > 0.5) return d;
+    }
+    return 14.0; // Realistic Indian Railways inter-station leg
+  }
+
+  /// Calculates the real-time position of any train route based on real-world time of day!
+  ({int stationIndex, double distanceToNextKm, int speedKmh, bool isFinished, bool isNotStarted}) _calculateSchedulePosition(TrainRoute route, DateTime now) {
+    final halts = route.halts;
+    if (halts.isEmpty) {
+      return (stationIndex: 0, distanceToNextKm: 0.0, speedKmh: 0, isFinished: true, isNotStarted: false);
+    }
+
+    final nowMins = now.hour * 60 + now.minute + (now.second / 60.0);
+
+    // 1. Check if journey has already finished for today
+    final endMins = _parseTimeToMinutes(halts.last.arrivalTime);
+    if (endMins != null && nowMins > endMins + 15) {
+      return (
+        stationIndex: halts.length - 1,
+        distanceToNextKm: 0.0,
+        speedKmh: 0,
+        isFinished: true,
+        isNotStarted: false,
+      );
+    }
+
+    // 2. Check if train has not departed yet today
+    final startMins = _parseTimeToMinutes(halts.first.departureTime);
+    if (startMins != null && nowMins < startMins) {
+      final firstLeg = _getLegDistance(route, 1);
+      return (
+        stationIndex: 1,
+        distanceToNextKm: firstLeg,
+        speedKmh: 68,
+        isFinished: false,
+        isNotStarted: false,
+      );
+    }
+
+    // 3. Train is actively on track right now! Find the exact active leg:
+    for (int i = 0; i < halts.length - 1; i++) {
+      final dep_i = _parseTimeToMinutes(halts[i].departureTime) ?? _parseTimeToMinutes(halts[i].arrivalTime);
+      final arr_next = _parseTimeToMinutes(halts[i + 1].arrivalTime) ?? _parseTimeToMinutes(halts[i + 1].departureTime);
+
+      if (dep_i != null && arr_next != null) {
+        if (nowMins >= dep_i && nowMins <= arr_next) {
+          final totalLegMins = (arr_next - dep_i).toDouble();
+          final elapsedMins = (nowMins - dep_i).toDouble();
+          final frac = (elapsedMins / (totalLegMins > 0 ? totalLegMins : 1.0)).clamp(0.0, 1.0);
+          final legDist = _getLegDistance(route, i + 1);
+          final distRemaining = (legDist * (1.0 - frac)).clamp(0.05, 999.0);
+          final speed = totalLegMins > 0 ? ((legDist / (totalLegMins / 60.0)).round()).clamp(40, 130) : 68;
+
+          return (
+            stationIndex: i + 1,
+            distanceToNextKm: distRemaining,
+            speedKmh: speed,
+            isFinished: false,
+            isNotStarted: false,
+          );
+        }
+      }
+    }
+
+    // Fallback: Approach first station leg
+    final defDist = _getLegDistance(route, 1);
+    return (
+      stationIndex: 1,
+      distanceToNextKm: defDist,
+      speedKmh: 68,
+      isFinished: false,
+      isNotStarted: false,
+    );
+  }
+
+  Future<void> _saveActiveJourney() async {
+    if (_selectedRoute == null) return;
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final file = File('${docDir.path}/active_train_journey.json');
+      final data = {
+        'trainNumber': _selectedRoute!.trainNumber,
+        'currentStationIndex': _currentStationIndex,
+        'distanceToNextKm': _distanceToNextKm,
+        'speedKmh': _speedKmh,
+        'lastUpdatedEpoch': DateTime.now().millisecondsSinceEpoch,
+        'activeTab': _activeTab,
+        'trackingMode': _trackingMode.index,
+      };
+      await file.writeAsString(jsonEncode(data));
+    } catch (_) {}
+  }
+
+  Future<void> _clearActiveJourney() async {
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final file = File('${docDir.path}/active_train_journey.json');
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _restoreActiveJourney() async {
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final file = File('${docDir.path}/active_train_journey.json');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = jsonDecode(content) as Map<String, dynamic>;
+        final trainNum = data['trainNumber'] as String?;
+        if (trainNum != null && trainNum.isNotEmpty) {
+          final route = _engine.getRouteByNumber(trainNum);
+          if (route != null) {
+            _selectedRoute = route;
+            _currentStationIndex = (data['currentStationIndex'] as int? ?? 1).clamp(0, route.stations.length - 1);
+            _speedKmh = data['speedKmh'] as int? ?? 68;
+            _activeTab = 1; // Open directly to Live Train HUD!
+            
+            final modeIdx = data['trackingMode'] as int?;
+            if (modeIdx != null && modeIdx >= 0 && modeIdx < TrackingMode.values.length) {
+              _trackingMode = TrackingMode.values[modeIdx];
+            }
+
+            final savedDist = (data['distanceToNextKm'] as num?)?.toDouble() ?? 3.4;
+            final lastEpoch = data['lastUpdatedEpoch'] as int?;
+            if (lastEpoch != null) {
+              final elapsedSec = (DateTime.now().millisecondsSinceEpoch - lastEpoch) / 1000.0;
+              // Continuously advance journey based on real time elapsed while closed!
+              if (elapsedSec > 0 && elapsedSec < 43200) {
+                final distTraveled = (_speedKmh / 3600.0) * elapsedSec;
+                double remaining = savedDist - distTraveled;
+                while (remaining <= 0.05 && _currentStationIndex < route.stations.length - 1) {
+                  _currentStationIndex++;
+                  remaining += _getLegDistance(route, _currentStationIndex);
+                }
+                _distanceToNextKm = remaining.clamp(0.05, 999.0);
+              } else {
+                _distanceToNextKm = savedDist;
+              }
+            } else {
+              _distanceToNextKm = savedDist;
+            }
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _saveActiveJourney();
     _simulationTimer?.cancel();
     _alarmSubscription?.cancel();
     _pulseController.dispose();
@@ -163,12 +351,53 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
 
   void _trackTrain(TrainRoute route) {
     HapticFeedback.mediumImpact();
+
+    // 1. If this train is ALREADY being tracked, preserve ongoing progress!
+    if (_selectedRoute?.trainNumber == route.trainNumber && _distanceToNextKm > 0.05) {
+      setState(() {
+        _activeTab = 1; // Switch to Live Train HUD tab
+      });
+      _saveActiveJourney();
+      final targetName = _selectedRoute!.stations[_currentStationIndex].name;
+      final distStr = _distanceToNextKm < 10.0
+          ? '${_distanceToNextKm.toStringAsFixed(2)} km'
+          : '${_distanceToNextKm.toStringAsFixed(1)} km';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Resuming live tracking: ${route.trainName} ($distStr to $targetName)'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: primaryEmerald,
+        ),
+      );
+      return;
+    }
+
+    // 2. Resolve target station based on user's selected From station if available!
+    int targetIdx = 1;
+    double legDist = _getLegDistance(route, 1);
+    int runSpeed = 68;
+
+    if (_fromStation != null) {
+      final fromIdx = route.halts.indexWhere((h) => h.station.code == _fromStation!.code);
+      if (fromIdx >= 0 && fromIdx < route.halts.length - 1) {
+        targetIdx = fromIdx + 1;
+        legDist = _getLegDistance(route, targetIdx);
+      }
+    } else {
+      final pos = _calculateSchedulePosition(route, DateTime.now());
+      targetIdx = pos.stationIndex;
+      legDist = pos.distanceToNextKm > 0.1 ? pos.distanceToNextKm : _getLegDistance(route, targetIdx);
+      runSpeed = pos.speedKmh > 0 ? pos.speedKmh : 68;
+    }
+
     setState(() {
       _selectedRoute = route;
-      _currentStationIndex = 1;
-      _distanceToNextKm = 4.2;
+      _currentStationIndex = targetIdx;
+      _distanceToNextKm = legDist;
+      _speedKmh = runSpeed;
       _activeTab = 1; // Switch to Live Train HUD tab
     });
+    _saveActiveJourney();
     if (_trackingMode == TrackingMode.onlineInternet) {
       _fetchLiveOnlineStatus();
     }
@@ -425,10 +654,20 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
 
     final activeAlarm = TrainAlarmEngine().activeAlarm;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
+    return RefreshIndicator(
+      color: primaryEmerald,
+      onRefresh: () async {
+        if (_trackingMode == TrackingMode.onlineInternet) {
+          await _fetchLiveOnlineStatus();
+        } else {
+          await _saveActiveJourney();
+          if (mounted) setState(() {});
+        }
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Column(
         children: [
           _buildTrainSelectorHeader(),
           const SizedBox(height: 8),
@@ -448,16 +687,23 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
           SizedBox(height: 110 + MediaQuery.of(context).padding.bottom),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildEmptyLiveHudView() {
     final popular = _engine.getPopularRoutes();
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Column(
+    return RefreshIndicator(
+      color: primaryEmerald,
+      onRefresh: () async {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) setState(() {});
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Column(
         children: [
           Container(
             width: double.infinity,
@@ -604,6 +850,7 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
           SizedBox(height: 110 + MediaQuery.of(context).padding.bottom),
         ],
       ),
+    ),
     );
   }
 
@@ -739,6 +986,34 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
             icon: const Icon(Icons.swap_horiz_rounded, color: primaryEmerald),
             tooltip: 'Switch Train Route',
             onPressed: _showTrainPickerSheet,
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: textMuted, size: 20),
+            tooltip: 'Stop Tracking',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Stop Train Tracking?'),
+                  content: Text('Stop tracking ${_selectedRoute!.trainName}?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Stop Tracking'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true && mounted) {
+                await _clearActiveJourney();
+                setState(() {
+                  _selectedRoute = null;
+                  _activeTab = 0;
+                });
+              }
+            },
           ),
         ],
       ),
@@ -1109,13 +1384,39 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
                       Text(
                         _trackingMode == TrackingMode.onlineInternet
                             ? (_targetLiveStation?.expectedArrival ?? targetStation.code)
-                            : '${_distanceToNextKm.toStringAsFixed(1)} km',
+                            : (_distanceToNextKm < 10.0
+                                ? '${_distanceToNextKm.toStringAsFixed(2)} km'
+                                : '${_distanceToNextKm.toStringAsFixed(1)} km'),
                         style: const TextStyle(
                           color: primaryEmerald,
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                      if (_trackingMode != TrackingMode.onlineInternet) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: accentGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(_distanceToNextKm * 1000).toInt()} m • Live',
+                              style: const TextStyle(
+                                color: accentGreen,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1355,7 +1656,9 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
                                 } else if (isCurrentTarget) {
                                   timingText = isOnline
                                       ? 'Approaching (Exp: ${liveHalt?.expectedArrival ?? halt.arrivalTime})'
-                                      : 'Approaching (${_distanceToNextKm.toStringAsFixed(1)} km away)';
+                                      : (_distanceToNextKm < 10.0
+                                          ? 'Approaching (${_distanceToNextKm.toStringAsFixed(2)} km away)'
+                                          : 'Approaching (${_distanceToNextKm.toStringAsFixed(1)} km away)');
                                 } else {
                                   timingText = isOnline
                                       ? 'Exp: ${liveHalt?.expectedArrival ?? halt.arrivalTime} • Dep: ${liveHalt?.expectedDeparture ?? halt.departureTime}'
@@ -1713,11 +2016,18 @@ class _TrainTrackerScreenState extends ConsumerState<TrainTrackerScreen> with Si
                             : null,
                         onTap: () {
                           HapticFeedback.lightImpact();
-                          setState(() {
-                            _selectedRoute = route;
-                            _currentStationIndex = 1;
-                            _distanceToNextKm = 4.2;
-                          });
+                          if (_selectedRoute?.trainNumber != route.trainNumber) {
+                            final pos = _calculateSchedulePosition(route, DateTime.now());
+                            final targetIdx = pos.stationIndex;
+                            final targetDist = pos.distanceToNextKm > 0.1 ? pos.distanceToNextKm : _getLegDistance(route, targetIdx);
+                            setState(() {
+                              _selectedRoute = route;
+                              _currentStationIndex = targetIdx;
+                              _distanceToNextKm = targetDist;
+                              _speedKmh = pos.speedKmh > 0 ? pos.speedKmh : 68;
+                            });
+                            _saveActiveJourney();
+                          }
                           Navigator.pop(ctx);
                         },
                       ),

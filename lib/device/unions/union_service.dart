@@ -18,33 +18,52 @@ class UnionService extends ChangeNotifier {
   bool _initialized = false;
   String? _firebaseProjectId;
 
-  // Track unions created on this device / user profile
+  // STRICT OWNERSHIP: Only IDs of unions created on this device
   Set<String> _myCreatedUnionIds = {};
-  String? _myEmail;
-  String? _myMobile;
+  String? _myHostEmail;
+  String? _myHostMobile;
+  String? _myRiderEmail;
+  String? _myRiderMobile;
 
   List<TravelUnionGroup> get unions => List.unmodifiable(_unions);
 
+  /// Returns true ONLY IF the current user created this specific union on this device
   bool isOwner(TravelUnionGroup union) {
-    if (_myCreatedUnionIds.contains(union.id)) return true;
-    if (_myEmail != null &&
-        _myEmail!.trim().isNotEmpty &&
-        union.hostEmail.trim().toLowerCase() == _myEmail!.trim().toLowerCase()) {
-      return true;
+    // 1. Must be in the list of unions created on this device
+    if (!_myCreatedUnionIds.contains(union.id)) {
+      return false;
     }
-    if (_myMobile != null &&
-        _myMobile!.trim().isNotEmpty &&
-        union.hostMobile.trim() == _myMobile!.trim()) {
-      return true;
+
+    // 2. Extra verification: if host contact is known, verify matching host identity
+    if (_myHostEmail != null && _myHostEmail!.trim().isNotEmpty) {
+      if (union.hostEmail.trim().toLowerCase() != _myHostEmail!.trim().toLowerCase()) {
+        return false;
+      }
     }
-    return false;
+    if (_myHostMobile != null && _myHostMobile!.trim().isNotEmpty) {
+      if (union.hostMobile.trim() != _myHostMobile!.trim()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   UnionMemberStatus? myMembershipStatus(TravelUnionGroup union) {
     if (isOwner(union)) return UnionMemberStatus.accepted;
+
+    final rEmail = _myRiderEmail ?? _myHostEmail;
+    final rMobile = _myRiderMobile ?? _myHostMobile;
+
     for (final m in union.members) {
-      if ((_myEmail != null && _myEmail!.isNotEmpty && m.email.trim().toLowerCase() == _myEmail!.toLowerCase()) ||
-          (_myMobile != null && _myMobile!.isNotEmpty && m.mobile.trim() == _myMobile!.trim())) {
+      // Don't mistake the host's member record for a joined rider
+      if (m.email.trim().toLowerCase() == union.hostEmail.trim().toLowerCase() &&
+          m.mobile.trim() == union.hostMobile.trim()) {
+        continue;
+      }
+
+      if ((rEmail != null && rEmail.isNotEmpty && m.email.trim().toLowerCase() == rEmail.toLowerCase()) ||
+          (rMobile != null && rMobile.isNotEmpty && m.mobile.trim() == rMobile.trim())) {
         return m.status;
       }
     }
@@ -55,15 +74,17 @@ class UnionService extends ChangeNotifier {
     if (_initialized) return;
     _firebaseProjectId = firebaseProjectId ?? _fbProjectId;
 
-    // 1. Load user's ownership profile
+    // 1. Load user's ownership & rider profile
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final myFile = File('${docDir.path}/my_unions_profile.json');
       if (await myFile.exists()) {
         final data = jsonDecode(await myFile.readAsString()) as Map<String, dynamic>;
-        _myCreatedUnionIds = Set<String>.from((data['unionIds'] as List? ?? []));
-        _myEmail = data['email'] as String?;
-        _myMobile = data['mobile'] as String?;
+        _myCreatedUnionIds = Set<String>.from((data['createdUnionIds'] ?? data['unionIds'] as List? ?? []));
+        _myHostEmail = data['hostEmail'] as String? ?? data['email'] as String?;
+        _myHostMobile = data['hostMobile'] as String? ?? data['mobile'] as String?;
+        _myRiderEmail = data['riderEmail'] as String?;
+        _myRiderMobile = data['riderMobile'] as String?;
       }
     } catch (_) {}
 
@@ -79,13 +100,14 @@ class UnionService extends ChangeNotifier {
             .where((u) => !const {'u_101', 'u_102'}.contains(u.id))
             .toList();
 
-        // Migrate previously locally-created unions if profile was empty
-        if (_myCreatedUnionIds.isEmpty && _unions.isNotEmpty) {
-          for (final u in _unions) {
-            _myCreatedUnionIds.add(u.id);
-            _myEmail ??= u.hostEmail;
-            _myMobile ??= u.hostMobile;
-          }
+        // Clean any foreign unions that were mistakenly included in _myCreatedUnionIds
+        if (_myHostEmail != null && _myHostEmail!.isNotEmpty) {
+          _myCreatedUnionIds.removeWhere((id) {
+            final match = _unions.where((u) => u.id == id).firstOrNull;
+            if (match == null) return false;
+            return match.hostEmail.trim().toLowerCase() != _myHostEmail!.toLowerCase() &&
+                   match.hostMobile.trim() != _myHostMobile?.trim();
+          });
           await _saveMyProfile();
         }
       }
@@ -142,8 +164,8 @@ class UnionService extends ChangeNotifier {
 
     _unions.insert(0, newUnion);
     _myCreatedUnionIds.add(id);
-    _myEmail = hostEmail.trim().toLowerCase();
-    _myMobile = hostMobile.trim();
+    _myHostEmail = hostEmail.trim().toLowerCase();
+    _myHostMobile = hostMobile.trim();
 
     await _saveLocalCache();
     await _saveMyProfile();
@@ -171,6 +193,7 @@ class UnionService extends ChangeNotifier {
   }) async {
     final idx = _unions.indexWhere((u) => u.id == unionId);
     if (idx == -1) return;
+    if (!isOwner(_unions[idx])) return;
 
     final old = _unions[idx];
     final updatedMembers = old.members.map((m) {
@@ -215,6 +238,11 @@ class UnionService extends ChangeNotifier {
   }
 
   Future<void> deleteUnion(String unionId) async {
+    final idx = _unions.indexWhere((u) => u.id == unionId);
+    if (idx != -1 && !isOwner(_unions[idx])) {
+      // Security guard: Only the creator/host can delete this union!
+      return;
+    }
     _unions.removeWhere((u) => u.id == unionId);
     _myCreatedUnionIds.remove(unionId);
     await _saveLocalCache();
@@ -274,9 +302,11 @@ class UnionService extends ChangeNotifier {
     );
 
     _unions[idx] = updatedUnion;
-    // Remember rider contact to identify join status
-    _myEmail ??= riderEmail.trim().toLowerCase();
-    _myMobile ??= riderMobile.trim();
+
+    // Record rider credentials so membership badge updates — NEVER add to _myCreatedUnionIds!
+    _myRiderEmail = riderEmail.trim().toLowerCase();
+    _myRiderMobile = riderMobile.trim();
+
     await _saveMyProfile();
     await _saveLocalCache();
     notifyListeners();
@@ -337,6 +367,86 @@ class UnionService extends ChangeNotifier {
     }
   }
 
+  /// Allows a joined/pending member to exit/leave a convoy
+  Future<void> leaveUnion(String unionId) async {
+    final idx = _unions.indexWhere((u) => u.id == unionId);
+    if (idx == -1) return;
+
+    final targetUnion = _unions[idx];
+    final rEmail = (_myRiderEmail ?? _myHostEmail)?.trim().toLowerCase();
+    final rMobile = (_myRiderMobile ?? _myHostMobile)?.trim();
+
+    // Remove rider matching user credentials (host cannot leave this way)
+    final updatedMembers = targetUnion.members.where((m) {
+      if (m.email.trim().toLowerCase() == targetUnion.hostEmail.trim().toLowerCase()) return true;
+      if (rEmail != null && rEmail.isNotEmpty && m.email.trim().toLowerCase() == rEmail) return false;
+      if (rMobile != null && rMobile.isNotEmpty && m.mobile.trim() == rMobile) return false;
+      return true;
+    }).toList();
+
+    _unions[idx] = TravelUnionGroup(
+      id: targetUnion.id,
+      title: targetUnion.title,
+      fromLocation: targetUnion.fromLocation,
+      toLocation: targetUnion.toLocation,
+      departureDateStr: targetUnion.departureDateStr,
+      category: targetUnion.category,
+      hostName: targetUnion.hostName,
+      hostMobile: targetUnion.hostMobile,
+      hostEmail: targetUnion.hostEmail,
+      joinCode: targetUnion.joinCode,
+      members: updatedMembers,
+      maxMembers: targetUnion.maxMembers,
+      createdAt: targetUnion.createdAt,
+    );
+
+    await _saveLocalCache();
+    notifyListeners();
+
+    if (_firebaseProjectId != null) {
+      _postUnionToFirebase(_unions[idx]);
+    }
+  }
+
+  /// Allows the convoy Host to kick/remove a member
+  Future<void> kickMember({required String unionId, required String memberId}) async {
+    final idx = _unions.indexWhere((u) => u.id == unionId);
+    if (idx == -1) return;
+    if (!isOwner(_unions[idx])) return; // Strict security: Only Host can kick!
+
+    final targetUnion = _unions[idx];
+    final updatedMembers = targetUnion.members.where((m) {
+      // Cannot kick the host
+      if (m.id == memberId && m.email.trim().toLowerCase() != targetUnion.hostEmail.trim().toLowerCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    _unions[idx] = TravelUnionGroup(
+      id: targetUnion.id,
+      title: targetUnion.title,
+      fromLocation: targetUnion.fromLocation,
+      toLocation: targetUnion.toLocation,
+      departureDateStr: targetUnion.departureDateStr,
+      category: targetUnion.category,
+      hostName: targetUnion.hostName,
+      hostMobile: targetUnion.hostMobile,
+      hostEmail: targetUnion.hostEmail,
+      joinCode: targetUnion.joinCode,
+      members: updatedMembers,
+      maxMembers: targetUnion.maxMembers,
+      createdAt: targetUnion.createdAt,
+    );
+
+    await _saveLocalCache();
+    notifyListeners();
+
+    if (_firebaseProjectId != null) {
+      _postUnionToFirebase(_unions[idx]);
+    }
+  }
+
   String _generateJoinCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final random = Random();
@@ -357,9 +467,11 @@ class UnionService extends ChangeNotifier {
       final docDir = await getApplicationDocumentsDirectory();
       final myFile = File('${docDir.path}/my_unions_profile.json');
       await myFile.writeAsString(jsonEncode({
-        'unionIds': _myCreatedUnionIds.toList(),
-        'email': _myEmail,
-        'mobile': _myMobile,
+        'createdUnionIds': _myCreatedUnionIds.toList(),
+        'hostEmail': _myHostEmail,
+        'hostMobile': _myHostMobile,
+        'riderEmail': _myRiderEmail,
+        'riderMobile': _myRiderMobile,
       }));
     } catch (_) {}
   }

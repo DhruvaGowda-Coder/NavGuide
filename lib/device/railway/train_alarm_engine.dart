@@ -44,6 +44,8 @@ class TrainAlarmEngine {
   factory TrainAlarmEngine() => _instance;
   TrainAlarmEngine._internal();
 
+  static const MethodChannel _alarmChannel = MethodChannel('com.navguardian.ai/alarm');
+
   StationAlarm? _activeAlarm;
   StationAlarm? get activeAlarm => _activeAlarm;
 
@@ -52,6 +54,9 @@ class TrainAlarmEngine {
   Stream<StationAlarm> get onAlarmTriggered => _alarmTriggeredController.stream;
 
   Timer? _vibrationTimer;
+  Timer? _soundFallbackTimer;
+  bool _isPlayingSound = false;
+  bool get isPlayingSound => _isPlayingSound;
 
   void setAlarm(StationAlarm alarm) {
     _activeAlarm = alarm;
@@ -59,11 +64,13 @@ class TrainAlarmEngine {
 
   void cancelAlarm() {
     _stopVibration();
+    stopAlarmSound();
     _activeAlarm = null;
   }
 
   void snoozeAlarm({int minutes = 5}) {
     _stopVibration();
+    stopAlarmSound();
     if (_activeAlarm != null) {
       _activeAlarm!.isSnoozed = true;
       _activeAlarm!.snoozedUntil = DateTime.now().add(Duration(minutes: minutes));
@@ -72,7 +79,33 @@ class TrainAlarmEngine {
 
   void dismissAlarm() {
     _stopVibration();
+    stopAlarmSound();
     _activeAlarm = null;
+  }
+
+  Future<void> playAlarmSound() async {
+    _isPlayingSound = true;
+    try {
+      await _alarmChannel.invokeMethod('playAlarmSound');
+    } catch (_) {
+      // Fallback: SystemSound alert pulse
+      SystemSound.play(SystemSoundType.alert);
+      _soundFallbackTimer?.cancel();
+      _soundFallbackTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        if (_isPlayingSound) {
+          SystemSound.play(SystemSoundType.alert);
+        }
+      });
+    }
+  }
+
+  Future<void> stopAlarmSound() async {
+    _isPlayingSound = false;
+    _soundFallbackTimer?.cancel();
+    _soundFallbackTimer = null;
+    try {
+      await _alarmChannel.invokeMethod('stopAlarmSound');
+    } catch (_) {}
   }
 
   void evaluateProximity({
@@ -134,6 +167,9 @@ class TrainAlarmEngine {
       _alarmTriggeredController.add(alarm);
       if (alarm.enableVibration) {
         _startVibrationLoop();
+      }
+      if (alarm.enableSound) {
+        playAlarmSound();
       }
     }
   }
