@@ -1,0 +1,31 @@
+{
+  "dataset_name": "NUANCE Autonomous Vehicle Driving & Sensor Fusion Benchmark",
+  "institution": "Northeastern University (Field Robotics & State Estimation Lab)",
+  "course_reference": "EECE 5554: Robotics Sensing and Navigation",
+  "project_title": "Sensor Fusion of GPS and IMU Data for Automotive Dead Reckoning",
+  "public_source_url": "https://raw.githubusercontent.com/Aryaman22102002/Sensor_Fusion_of_GPS_and_IMU_Data_for_Automotive_Dead_Reckoning/main/analysis/data_driving.csv",
+  "repository_url": "https://github.com/Aryaman22102002/Sensor_Fusion_of_GPS_and_IMU_Data_for_Automotive_Dead_Reckoning",
+  "hardware_sensors": {
+    "imu": {
+      "model": "VectorNav VN-100 High-Precision Industrial IMU",
+      "sampling_rate_hz": 40,
+      "accelerometer": "3-axis, calibrated bias, +-16g",
+      "gyroscope": "3-axis, +-2000 deg/s",
+      "magnetometer": "3-axis, +-2.5 Gauss"
+    },
+    "gps": {
+      "model": "USB GNSS RTK High-Precision GPS Receiver",
+      "sampling_rate_hz": 1,
+      "coordinate_format": "UTM (Universal Transverse Mercator) Easting & Northing in meters (Zone 19T)",
+      "accuracy": "Centimeter-level ground truth fixes"
+    }
+  },
+  "dataset_files_proof": {
+    "raw_online_telemetry_csv": "demo_presentation/data/nuance_autonomous_driving_raw.csv",
+    "raw_total_rows": 22936,
+    "synchronized_benchmark_csv": "demo_presentation/data/nuance_driving_iris_format.csv",
+    "synchronized_rows": 5559,
+    "synchronized_sampling_rate": "10Hz (0.1s time steps)",
+    "driving_duration_seconds": 555.8
+  }
+}

@@ -3,16 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
 import '../features/home/home_screen.dart';
-import '../features/transit/train_tracker_screen.dart';
 import '../features/crowdsourcing/community_hazards_screen.dart';
 import '../features/journey/journey_history_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/unions/unions_screen.dart';
+import '../features/unions/global_emergency_banner.dart';
+import '../features/nearby/nearby_places_screen.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 class NavGuardianApp extends StatelessWidget {
   const NavGuardianApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
+    navigatorKey: appNavigatorKey,
     title: 'NavGuide',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
@@ -21,6 +25,19 @@ class NavGuardianApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff23695a)),
       appBarTheme: const AppBarTheme(backgroundColor: Color(0xfff7f9f6)),
     ),
+    builder: (context, child) {
+      return Stack(
+        children: [
+          if (child != null) child,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: GlobalConvoyEmergencyBanner(navigatorKey: appNavigatorKey),
+          ),
+        ],
+      );
+    },
     home: const _AppShell(),
   );
 }
@@ -31,14 +48,33 @@ class _AppShell extends ConsumerStatefulWidget {
   ConsumerState<_AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserver {
+class _AppShellState extends ConsumerState<_AppShell>
+    with WidgetsBindingObserver {
   int _index = 0;
   bool _onboarded = true;
+
+  // ── Lazy-but-stable tab cache ──────────────────────────────────────────
+  // Tabs are created on FIRST visit and cached forever after.
+  // This avoids rebuilding screens on tab switch (stable object identity),
+  // while also avoiding the 172-frame startup spike that happens when all
+  // 4 heavy screens (especially GoogleMap) initialize simultaneously.
+  final Map<int, Widget> _tabCache = {};
+
+  static const _tabBuilders = <int, Widget Function()>{
+    0: HomeScreen.new,
+    1: UnionsScreen.new,
+    2: NearbyPlacesScreen.new,
+  };
+
+  Widget _getTab(int index) =>
+      _tabCache.putIfAbsent(index, () => _tabBuilders[index]!());
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Only pre-build tab 0 (HomeScreen) at startup
+    _tabCache[0] = const HomeScreen();
   }
 
   @override
@@ -57,11 +93,23 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.explore),
-          SizedBox(width: 10),
-          Text('NavGuide', style: TextStyle(fontWeight: FontWeight.w700)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/navguide_icon.png',
+              width: 32,
+              height: 32,
+              cacheWidth: 96, // decode at display size (3× max)
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            'NavGuide',
+            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
+          ),
         ],
       ),
       actions: [
@@ -82,9 +130,8 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
         IconButton(
           icon: const Icon(Icons.settings_outlined),
           tooltip: 'Settings',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-          ),
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
         ),
         const SizedBox(width: 4),
       ],
@@ -98,12 +145,16 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.explore_outlined,
-                        size: 88,
-                        color: Color(0xff23695a),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/navguide_logo.png',
+                          width: 160,
+                          height: 160,
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       Text(
                         'Find your footing.',
                         style: Theme.of(context).textTheme.headlineLarge,
@@ -130,11 +181,10 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
             )
           : IndexedStack(
               index: _index,
-              children: const [
-                HomeScreen(),
-                TrainTrackerScreen(),
-                UnionsScreen(),
-              ],
+              children: List.generate(
+                3,
+                (i) => _getTab(i), // lazy-created on first visit, cached forever
+              ),
             ),
     ),
     bottomNavigationBar: !_onboarded
@@ -149,14 +199,14 @@ class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserve
                 label: 'Explore',
               ),
               NavigationDestination(
-                icon: Icon(Icons.directions_railway_outlined),
-                selectedIcon: Icon(Icons.directions_railway),
-                label: 'Train HUD',
-              ),
-              NavigationDestination(
                 icon: Icon(Icons.group_outlined),
                 selectedIcon: Icon(Icons.group),
                 label: 'Unions',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.near_me_outlined),
+                selectedIcon: Icon(Icons.near_me_rounded),
+                label: 'Near Me',
               ),
             ],
           ),

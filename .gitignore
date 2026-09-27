@@ -20,3 +20,9 @@ ml/artifacts/
 **/android/.gradle/
 scratch/
 screen_*.png
+phone_*.png
+*_check.png
+*_fixed.png
+*_screen*.png
+*_opened.png
+*_bottom_fixed.png

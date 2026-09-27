@@ -593,30 +593,34 @@ class _JourneyAnalysisScreenState extends State<JourneyAnalysisScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'EKF Filter Diagnostics',
-              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Real-time filter states and covariance metrics',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-            const Divider(height: 20),
-            _diagRow('Estimated Gyro Bias (b_w)', '${diag.gyroBiasDegPerSec.toStringAsFixed(3)} °/s'),
-            _diagRow('Filter Position Uncertainty (σ)', '${diag.positionStdDevMeters.toStringAsFixed(2)} m'),
-            _diagRow('Estimated Velocity', '${diag.estimatedSpeedMps.toStringAsFixed(2)} m/s'),
-            _diagRow('Estimated Heading', '${diag.estimatedHeadingDegrees.toStringAsFixed(1)}°'),
-            _diagRow('GPS Corrections Applied', '${diag.gpsUpdatesCount}'),
-            _diagRow('Magnetometer Anomalies Dropped', '${diag.magAnomaliesCount}'),
-            _diagRow('Stationary (ZUPT Active)', diag.isStationary ? 'Yes' : 'No'),
-          ],
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + MediaQuery.of(ctx).padding.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'EKF Filter Diagnostics',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Real-time filter states and covariance metrics',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const Divider(height: 20),
+              _diagRow('Estimated Gyro Bias (b_w)', '${diag.gyroBiasDegPerSec.toStringAsFixed(3)} °/s'),
+              _diagRow('Filter Position Uncertainty (σ)', '${diag.positionStdDevMeters.toStringAsFixed(2)} m'),
+              _diagRow('Estimated Velocity', '${diag.estimatedSpeedMps.toStringAsFixed(2)} m/s'),
+              _diagRow('Estimated Heading', '${diag.estimatedHeadingDegrees.toStringAsFixed(1)}°'),
+              _diagRow('GPS Corrections Applied', '${diag.gpsUpdatesCount}'),
+              _diagRow('Magnetometer Anomalies Dropped', '${diag.magAnomaliesCount}'),
+              _diagRow('Stationary (ZUPT Active)', diag.isStationary ? 'Yes' : 'No'),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
@@ -644,10 +648,12 @@ class _JourneyAnalysisScreenState extends State<JourneyAnalysisScreen> {
         expand: false,
         initialChildSize: 0.6,
         maxChildSize: 0.9,
-        builder: (ctx, scrollController) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (ctx, scrollController) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(ctx).padding.bottom),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Point-by-Point Ground Truth vs DR vs EKF',
@@ -723,6 +729,7 @@ class _JourneyAnalysisScreenState extends State<JourneyAnalysisScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

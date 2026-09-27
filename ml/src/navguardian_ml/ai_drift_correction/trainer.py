@@ -53,7 +53,7 @@ def train_models(
     val_mae_a = float(np.mean(np.abs(pred_val_a - Y_val)))
 
     # 2. Train Model B (Temporal Sequence MLP)
-    model_b = DriftCorrectionModelB(window_size=5, hidden_layer_sizes=(32, 16), alpha=0.05)
+    model_b = DriftCorrectionModelB(window_size=5, hidden_layer_sizes=(64, 32), alpha=0.01)
     train_metrics_b = model_b.fit(X_train, Y_train)
 
     pred_val_b = model_b.predict(X_val)

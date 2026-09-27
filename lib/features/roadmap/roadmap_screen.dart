@@ -7,7 +7,7 @@ class RoadmapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NavGuardian AI — Features'),
+        title: const Text('NavGuide — Features'),
       ),
       body: SafeArea(
         top: false,
@@ -15,7 +15,7 @@ class RoadmapScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           Text(
-            'What NavGuardian AI Does',
+            'What NavGuide Does',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: const Color(0xff23695a),
@@ -97,7 +97,7 @@ class RoadmapScreen extends StatelessWidget {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'NavGuardian AI — all features are fully operational on your device.',
+                    'NavGuide — all features are fully operational on your device.',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

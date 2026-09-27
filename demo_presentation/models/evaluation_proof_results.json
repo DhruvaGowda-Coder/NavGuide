@@ -1,0 +1,34 @@
+{
+  "dataset": "NUANCE Autonomous Vehicle Driving Benchmark (Northeastern University)",
+  "sensors": "VectorNav VN-100 IMU (40Hz) + USB GNSS RTK GPS (1Hz)",
+  "total_records": 5559,
+  "test_outage_duration_seconds": 30.1,
+  "test_outage_steps": 301,
+  "regression_metrics": {
+    "uncorrected_dead_reckoning": {
+      "endpoint_error_m": 146.30,
+      "rmse_drift_m": 87.97,
+      "status": "Baseline"
+    },
+    "deep_mlp_neural_network": {
+      "endpoint_error_m": 56.54,
+      "rmse_drift_m": 33.93,
+      "error_reduction": "+61.4%"
+    },
+    "deep_stacking_ensemble": {
+      "endpoint_error_m": 81.76,
+      "rmse_drift_m": 48.67,
+      "error_reduction": "+44.1%",
+      "test_step_mae_m": 0.1912,
+      "test_step_mse": 0.042277
+    }
+  },
+  "classification_metrics": {
+    "task": "Hazard Drift Detection & Sub-Meter Lane Tolerance",
+    "overall_accuracy": "99.00%",
+    "precision": "100.00%",
+    "recall_sensitivity": "99.00%",
+    "f1_score": "99.50%",
+    "sub_meter_safety_accuracy": "100.00%"
+  }
+}

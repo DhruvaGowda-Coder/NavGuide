@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../device/dead_reckoning/dead_reckoning_engine.dart';
 import '../../maps/google_map_surface.dart';
 import '../location/location_controller.dart';
 import '../search/destination_search_screen.dart';
 import '../journey/journey_history_screen.dart';
-import '../journey/journey_controller.dart';
+import '../safety_scoring/route_safety_recommendation_screen.dart';
 import '../../domain/telemetry.dart';
+import '../common/location_share_sheet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +23,25 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isMapFullscreen = false;
+  bool _showMapSurface = false;
+  Timer? _mapWarmupTimer;
+  LatLng? _selectedDestination;
+  String? _destinationName;
+
+  void _onMapTap(LatLng point) {
+    setState(() {
+      _selectedDestination = point;
+      _destinationName =
+          'Destination Point (${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)})';
+    });
+  }
+
+  void _clearDestination() {
+    setState(() {
+      _selectedDestination = null;
+      _destinationName = null;
+    });
+  }
 
   @override
   void initState() {
@@ -27,41 +51,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.read(locationControllerProvider.notifier).start();
       }
     });
+    _mapWarmupTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        setState(() => _showMapSurface = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mapWarmupTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(locationControllerProvider);
-    final controller = ref.read(locationControllerProvider.notifier);
     final journeyState = ref.watch(journeyControllerProvider);
-    final journeyController = ref.read(journeyControllerProvider.notifier);
     final fix = state.fix;
-    final stale = fix?.isStale(DateTime.now().toUtc()) ?? false;
-    final label = switch (state.status) {
-      TrackingStatus.idle => 'Ready when you are',
-      TrackingStatus.requesting => 'Checking location access…',
-      TrackingStatus.waiting => 'Waiting for a GPS fix…',
-      TrackingStatus.live =>
-        stale ? 'GPS fix is stale · no position estimation' : 'Live GPS',
-      TrackingStatus.denied => 'Location permission denied',
-      TrackingStatus.blocked => 'Location blocked · open app settings',
-      TrackingStatus.disabled => 'Device location is switched off',
-      TrackingStatus.paused => 'Tracking paused',
-      TrackingStatus.error => 'Location unavailable',
-    };
 
     if (_isMapFullscreen) {
       final bottomInset = MediaQuery.of(context).padding.bottom;
       return Stack(
         children: [
-          Positioned.fill(
-            child: GoogleMapSurface(
-              fix: fix,
-              isFullscreen: true,
-              onToggleFullscreen: () =>
-                  setState(() => _isMapFullscreen = false),
-            ),
-          ),
+          Positioned.fill(child: _buildMapSurface(fix, isFullscreen: true)),
           Positioned(
             bottom: 16 + bottomInset,
             left: 16,
@@ -72,8 +85,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -93,8 +108,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           journeyState.isRecording
                               ? 'Recording (${journeyState.formattedDuration})'
                               : (fix != null
-                                  ? '${((fix.speedMetersPerSecond ?? 0.0) * 3.6).toStringAsFixed(1)} km/h · ±${fix.accuracyMeters.toStringAsFixed(0)}m'
-                                  : 'Waiting for GPS'),
+                                    ? '${((fix.speedMetersPerSecond ?? 0.0) * 3.6).toStringAsFixed(1)} km/h · ±${fix.accuracyMeters.toStringAsFixed(0)}m'
+                                    : 'Waiting for GPS'),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -103,8 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     FilledButton.tonal(
-                      onPressed: () =>
-                          setState(() => _isMapFullscreen = false),
+                      onPressed: () => setState(() => _isMapFullscreen = false),
                       child: const Text('Exit Fullscreen'),
                     ),
                   ],
@@ -117,282 +131,460 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: [
-          // Top Sleek Destination Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(28),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const DestinationSearchScreen(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Top Search Bar (Google Maps Clean Style) with Direct Share Location Action
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.07),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Color(0xff23695a), size: 20),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Where to? Search destination...',
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.07),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const DestinationSearchScreen(),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6.0),
+                          child: Icon(
+                            Icons.search,
+                            color: Color(0xff23695a),
+                            size: 20,
+                          ),
                         ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xff23695a).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const DestinationSearchScreen(),
+                            ),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              'Where to? Search destination...',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.directions,
-                        size: 18,
-                        color: Color(0xff23695a),
+                      const SizedBox(width: 4),
+                      // Share Location button directly invoking native system share dialog
+                      Tooltip(
+                        message: 'Share Live Location',
+                        child: InkWell(
+                          onTap: () {
+                            final lat = fix?.latitude ?? 12.9716;
+                            final lon = fix?.longitude ?? 77.5946;
+                            LocationShareSheet.shareDirectly(
+                              latitude: lat,
+                              longitude: lon,
+                              accuracyMeters: fix?.accuracyMeters,
+                              placeName: fix != null
+                                  ? 'My Live Location'
+                                  : 'Bengaluru Central',
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff23695a)
+                                  .withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.share_location_rounded,
+                                  size: 15,
+                                  color: Color(0xff23695a),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Share',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xff23695a),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const DestinationSearchScreen(),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xff23695a)
+                                .withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.directions,
+                            size: 17,
+                            color: Color(0xff23695a),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Maximum Exposure Map View (Full Screen under Search)
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: _buildMapSurface(fix, isFullscreen: false),
+                ),
+              ),
+            ],
+          ),
+
+          // If user tapped map to pick a destination, display Destination Reach Card at bottom
+          if (_selectedDestination != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 8,
+              child: _buildDestinationReachCard(fix),
+            ),
+
+          // If a journey recording is active in the background, show a floating indicator
+          if (journeyState.isRecording)
+            Positioned(
+              top: 72,
+              left: 20,
+              right: 20,
+              child: Center(
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const JourneyHistoryScreen(),
                     ),
-                  ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff1e293b).withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Recording: ${journeyState.formattedDuration} · ${journeyState.totalSamples} pts',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: Colors.white70,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-
-          // Maximum Exposure Map View (Takes all available remaining space)
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: GoogleMapSurface(
-                fix: fix,
-                isFullscreen: false,
-                onToggleFullscreen: () =>
-                    setState(() => _isMapFullscreen = true),
-              ),
-            ),
-          ),
-
-          // Sleek, Compact Bottom Panel for Live GPS & Journey Recording
-          _compactBottomPanel(
-            context: context,
-            state: state,
-            controller: controller,
-            journeyState: journeyState,
-            journeyController: journeyController,
-            fix: fix,
-            label: label,
-          ),
         ],
       ),
     );
   }
 
-  Widget _compactBottomPanel({
-    required BuildContext context,
-    required TrackingState state,
-    required LocationController controller,
-    required JourneyState journeyState,
-    required JourneyController journeyController,
-    required GeoFix? fix,
-    required String label,
-  }) {
-    final isLive = state.status == TrackingStatus.live;
-    final isRequesting = state.status == TrackingStatus.requesting;
-    final isRecording = journeyState.isRecording;
+  Widget _buildMapSurface(GeoFix? fix, {required bool isFullscreen}) {
+    if (!_showMapSurface) {
+      return _buildMapPlaceholder(fix);
+    }
+
+    return GoogleMapSurface(
+      fix: fix,
+      destinationPoint: _selectedDestination,
+      destinationName: _destinationName,
+      onMapTap: _onMapTap,
+      isFullscreen: isFullscreen,
+      onToggleFullscreen: () => setState(() {
+        _isMapFullscreen = !isFullscreen;
+      }),
+    );
+  }
+
+  Widget _buildMapPlaceholder(GeoFix? fix) {
+    return Container(
+      color: const Color(0xFFEFF6F3),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'assets/navguide_icon.png',
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Opening NavGuide',
+              style: TextStyle(
+                color: Color(0xFF134E42),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              fix == null ? 'Preparing map and GPS...' : 'Preparing map...',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDestinationReachCard(GeoFix? fix) {
+    if (_selectedDestination == null) return const SizedBox.shrink();
+
+    double? distKm;
+    if (fix != null) {
+      final meters = GeodesyUtils.haversineDistanceMeters(
+        fix.latitude,
+        fix.longitude,
+        _selectedDestination!.latitude,
+        _selectedDestination!.longitude,
+      );
+      distKm = meters / 1000.0;
+    }
+
+    final isArrived = distKm != null && distKm <= 0.05;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(
+          color: isArrived
+              ? const Color(0xff10b981)
+              : const Color(0xff23695a).withValues(alpha: 0.2),
+          width: 1.5,
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: Live GPS status & speed
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color:
+                      (isArrived
+                              ? const Color(0xff10b981)
+                              : const Color(0xffef4444))
+                          .withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isArrived ? Icons.check_circle_rounded : Icons.place_rounded,
+                  color: isArrived
+                      ? const Color(0xff10b981)
+                      : const Color(0xffef4444),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      isLive ? Icons.gps_fixed : Icons.gps_not_fixed,
-                      color: isLive ? const Color(0xff23695a) : Colors.grey,
-                      size: 18,
+                    Text(
+                      isArrived
+                          ? '🎉 Reached Destination!'
+                          : (_destinationName ?? 'Destination Point'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xff1e293b),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: label,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: isLive ? const Color(0xff23695a) : Colors.black87,
-                              ),
-                            ),
-                            if (fix != null && isLive)
-                              TextSpan(
-                                text: ' · ${((fix.speedMetersPerSecond ?? 0.0) * 3.6).toStringAsFixed(1)} km/h · ±${fix.accuracyMeters.toStringAsFixed(0)}m',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade700,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 2),
+                    Text(
+                      distKm != null
+                          ? (isArrived
+                                ? 'You have arrived at this location'
+                                : '${distKm.toStringAsFixed(2)} km from current location')
+                          : 'Destination reach point selected',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isArrived
+                            ? const Color(0xff10b981)
+                            : Colors.black54,
+                        fontWeight: isArrived
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (!isLive)
-                TextButton(
-                  onPressed: isRequesting ? null : () => controller.start(),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    isRequesting ? 'Connecting…' : 'Enable GPS',
-                    style: const TextStyle(fontSize: 12, color: Color(0xff23695a)),
-                  ),
-                )
-              else if (state.status == TrackingStatus.blocked ||
-                  state.status == TrackingStatus.disabled)
-                TextButton(
-                  onPressed: () => controller.openSettings(
-                    location: state.status == TrackingStatus.disabled,
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text('Settings', style: TextStyle(fontSize: 12)),
-                ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18, color: Colors.black45),
+                onPressed: _clearDestination,
+                tooltip: 'Clear destination',
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Divider(height: 1, thickness: 0.5),
-          const SizedBox(height: 8),
-
-          // Row 2: Simple Journey Recording & History
+          const SizedBox(height: 10),
           Row(
             children: [
-              if (isRecording) ...[
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xffd32f2f),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  journeyState.formattedDuration,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'monospace',
-                    color: Color(0xffd32f2f),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '${journeyState.totalSamples} pts',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                  ),
-                ),
-                FilledButton.icon(
+              Expanded(
+                child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xffd32f2f),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: const Color(0xff23695a),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: () async {
-                    final meta = await journeyController.stopJourney();
-                    if (context.mounted && meta != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Saved "${meta.id}" (${meta.totalSamples} samples)'),
+                  onPressed: () {
+                    final oLat = fix?.latitude ?? 12.9716;
+                    final oLon = fix?.longitude ?? 77.5946;
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RouteSafetyRecommendationScreen(
+                          customOriginLat: oLat,
+                          customOriginLon: oLon,
+                          customOriginName: 'Current Location',
+                          customDestLat: _selectedDestination!.latitude,
+                          customDestLon: _selectedDestination!.longitude,
+                          customDestName:
+                              _destinationName ?? 'Destination Reach Point',
                         ),
-                      );
-                    }
+                      ),
+                    );
                   },
-                  icon: const Icon(Icons.stop, size: 16),
-                  label: const Text('Stop', style: TextStyle(fontSize: 12)),
-                ),
-              ] else ...[
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xff23695a),
-                      side: const BorderSide(color: Color(0xff23695a)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () async {
-                      controller.start();
-                      await journeyController.startJourney();
-                    },
-                    icon: const Icon(Icons.fiber_manual_record, size: 14, color: Colors.red),
-                    label: const Text(
-                      'Record Journey',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
+                  icon: const Icon(Icons.alt_route_rounded, size: 18),
+                  label: const Text(
+                    'Evaluate Safe Routes ➔',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
-                const SizedBox(width: 10),
-                IconButton.outlined(
-                  tooltip: 'Journey History',
-                  style: IconButton.styleFrom(
-                    padding: const EdgeInsets.all(8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const JourneyHistoryScreen(),
+              ),
+              const SizedBox(width: 8),
+              Material(
+                color: const Color(0xff23695a).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    LocationShareSheet.shareDirectly(
+                      latitude: _selectedDestination!.latitude,
+                      longitude: _selectedDestination!.longitude,
+                      placeName: _destinationName ?? 'Destination Point',
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    child: const Icon(
+                      Icons.share_location_rounded,
+                      color: Color(0xff23695a),
+                      size: 20,
                     ),
                   ),
-                  icon: const Icon(Icons.folder_outlined, size: 18),
                 ),
-              ],
+              ),
             ],
           ),
         ],
@@ -400,4 +592,3 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
-

@@ -68,7 +68,20 @@ class RouteSafetyDataService {
     } catch (_) {}
 
     try {
-      return await _fallbackRouteProvider.computeRoutes(
+      final routes = await _fallbackRouteProvider.computeRoutes(
+        originLat: originLat,
+        originLon: originLon,
+        destLat: destLat,
+        destLon: destLon,
+        originName: originName,
+        destName: destName,
+      );
+      if (routes.isNotEmpty) return routes;
+    } catch (_) {}
+
+    // Resilient on-device fallback: Ensures users never get an empty route error or blank screen
+    try {
+      return await OfflineFallbackRouteProvider().computeRoutes(
         originLat: originLat,
         originLon: originLon,
         destLat: destLat,
@@ -161,6 +174,12 @@ class RouteSafetyDataService {
       originLon: originLon,
       destLat: destLat,
       destLon: destLon,
+    ).timeout(
+      const Duration(milliseconds: 1800),
+      onTimeout: () => (
+        origin: WeatherInfo.unknown,
+        dest: WeatherInfo.unknown,
+      ),
     );
 
     final elevFuture = _fetchCorridorElevation(
@@ -168,6 +187,9 @@ class RouteSafetyDataService {
       originLon: originLon,
       destLat: destLat,
       destLon: destLon,
+    ).timeout(
+      const Duration(milliseconds: 1500),
+      onTimeout: () => (origin: null, dest: null),
     );
 
     final results = await Future.wait([

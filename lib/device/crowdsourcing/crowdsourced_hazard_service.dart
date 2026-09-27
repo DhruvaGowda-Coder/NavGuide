@@ -5,17 +5,21 @@ import '../../domain/crowdsourced_hazard_models.dart';
 import '../dead_reckoning/dead_reckoning_engine.dart';
 
 /// Service managing crowdsourced hazard reports, community confirmations, and route ratings.
-/// Runs completely on real user-reported data with zero synthetic or mock data seeds.
+/// Features dual persistent storage: local JSON cache + real Firebase Firestore cloud sync.
 class CrowdsourcedHazardService {
   CrowdsourcedHazardService._();
   static final CrowdsourcedHazardService instance = CrowdsourcedHazardService._();
+
+  // ── Firebase / Firestore config (diary-13644 project) ──
+  static const String _fbProjectId = 'diary-13644';
+  static const String _fbApiKey   = 'AIzaSyCFkg5ywh9TX0lGglxsVeR6K8JF-BFC7Zc';
 
   final List<CrowdsourcedHazardReport> _hazards = [];
   final List<RouteRatingFeedback> _ratings = [];
   final Set<String> _userVotedIds = {};
   bool _isInitialized = false;
 
-  /// Initialize service strictly from persistent storage.
+  /// Initialize service strictly from persistent storage and trigger background cloud sync.
   Future<void> initialize({bool forceReset = false}) async {
     if (_isInitialized && !forceReset) return;
 
@@ -55,6 +59,9 @@ class CrowdsourcedHazardService {
       // In tests or environments without native path_provider, starts with clean empty in-memory list
     }
     _isInitialized = true;
+
+    // Trigger cloud sync in background (non-blocking)
+    syncWithFirebase();
   }
 
   /// Get all active crowdsourced hazard reports (empty if none reported yet).
@@ -103,7 +110,7 @@ class CrowdsourcedHazardService {
     return results;
   }
 
-  /// Submit a new user-reported hazard into the live database.
+  /// Submit a new user-reported hazard into the live database and broadcast to Firebase cloud.
   Future<CrowdsourcedHazardReport> submitHazardReport({
     required HazardType hazardType,
     required String description,
@@ -129,6 +136,10 @@ class CrowdsourcedHazardService {
     _hazards.insert(0, report);
     _userVotedIds.add(report.id);
     await _saveHazards();
+
+    // Broadcast to real Firebase Firestore backend
+    _postHazardToFirebase(report);
+
     return report;
   }
 
@@ -146,6 +157,9 @@ class CrowdsourcedHazardService {
     _hazards[idx] = updated;
     _userVotedIds.add(reportId);
     await _saveHazards();
+
+    _postHazardToFirebase(updated);
+
     return updated;
   }
 
@@ -163,17 +177,96 @@ class CrowdsourcedHazardService {
     _hazards[idx] = updated;
     _userVotedIds.add(reportId);
     await _saveHazards();
+
+    _postHazardToFirebase(updated);
+
     return updated;
   }
 
-  /// Delete/remove a hazard report completely from storage.
+  /// Delete/remove a hazard report completely from storage and cloud.
   Future<bool> deleteHazard(String reportId) async {
     final idx = _hazards.indexWhere((h) => h.id == reportId);
     if (idx < 0) return false;
     _hazards.removeAt(idx);
     _userVotedIds.remove(reportId);
     await _saveHazards();
+    _deleteHazardFromFirebase(reportId);
     return true;
+  }
+
+  /// Syncs crowdsourced hazards with Firebase Firestore backend
+  Future<void> syncWithFirebase() async {
+    try {
+      final url = Uri.parse(
+        'https://firestore.googleapis.com/v1/projects/$_fbProjectId/databases/(default)/documents/crowdsourced_hazards?key=$_fbApiKey',
+      );
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+      final req = await client.getUrl(url);
+      req.headers.add('Accept', 'application/json');
+      final res = await req.close().timeout(const Duration(seconds: 4));
+
+      if (res.statusCode == 200) {
+        final body = await res.transform(utf8.decoder).join();
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        if (json.containsKey('documents') && json['documents'] is List) {
+          final List<CrowdsourcedHazardReport> remoteHazards = [];
+          for (final doc in (json['documents'] as List)) {
+            try {
+              final fields = doc['fields'] as Map<String, dynamic>;
+              final rawJson = fields['hazardData']['stringValue'] as String;
+              remoteHazards.add(CrowdsourcedHazardReport.fromJson(jsonDecode(rawJson)));
+            } catch (_) {}
+          }
+          if (remoteHazards.isNotEmpty) {
+            final remoteIds = remoteHazards.map((h) => h.id).toSet();
+            final localOnly = _hazards.where((h) => !remoteIds.contains(h.id)).toList();
+
+            _hazards.clear();
+            _hazards.addAll([...remoteHazards, ...localOnly]);
+            await _saveHazards();
+          }
+        }
+      }
+    } catch (_) {
+      // Offline or network error, silently continue with local cache
+    }
+  }
+
+  Future<void> _postHazardToFirebase(CrowdsourcedHazardReport hazard) async {
+    try {
+      final url = Uri.parse(
+        'https://firestore.googleapis.com/v1/projects/$_fbProjectId/databases/(default)/documents/crowdsourced_hazards/${hazard.id}?key=$_fbApiKey',
+      );
+      final client = HttpClient();
+      final req = await client.patchUrl(url);
+      req.headers.contentType = ContentType.json;
+      req.headers.add('Accept', 'application/json');
+
+      final body = jsonEncode({
+        'fields': {
+          'hazardData': {'stringValue': jsonEncode(hazard.toJson())},
+          'updatedAt':  {'stringValue': DateTime.now().toIso8601String()},
+          'hazardType': {'stringValue': hazard.hazardType.name},
+          'roadName':   {'stringValue': hazard.roadName},
+          'severity':   {'stringValue': hazard.severity},
+          'latitude':   {'doubleValue': hazard.latitude},
+          'longitude':  {'doubleValue': hazard.longitude},
+        }
+      });
+      req.write(body);
+      await req.close();
+    } catch (_) {}
+  }
+
+  Future<void> _deleteHazardFromFirebase(String reportId) async {
+    try {
+      final url = Uri.parse(
+        'https://firestore.googleapis.com/v1/projects/$_fbProjectId/databases/(default)/documents/crowdsourced_hazards/$reportId?key=$_fbApiKey',
+      );
+      final client = HttpClient();
+      final req = await client.deleteUrl(url);
+      await req.close();
+    } catch (_) {}
   }
 
   /// Record user rating feedback for a completed route.

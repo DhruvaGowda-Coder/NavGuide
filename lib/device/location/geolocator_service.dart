@@ -24,8 +24,8 @@ class GeolocatorService implements LocationService {
   Stream<GeoFix> watch() =>
       Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 0,
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
         ),
       ).map(
         (p) => GeoFix(
@@ -52,4 +52,3 @@ class GeolocatorService implements LocationService {
   @override
   Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
 }
-

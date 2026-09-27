@@ -16,7 +16,7 @@ import pandas as pd
 class FeatureExtractor:
     """Extracts kinematic features and residual correction targets."""
 
-    def __init__(self, gravity: float = 9.80665, zupt_thresh: float = 0.35):
+    def __init__(self, gravity: float = 9.80665, zupt_thresh: float = 0.05):
         self.gravity = gravity
         self.zupt_thresh = zupt_thresh
 
@@ -105,13 +105,16 @@ class FeatureExtractor:
             unbiased_yaw = yaw_rate - cur_bw
             cur_psi = (cur_psi + unbiased_yaw * dt + math.pi) % (2 * math.pi) - math.pi
 
-            # Accel rotation to NED (North-East)
+            # Accel rotation to North-East navigation frame
+            # ay = forward acceleration, ax = lateral acceleration
             cp, sp = math.cos(cur_pitch), math.sin(cur_pitch)
             cr, sr = math.cos(cur_roll), math.sin(cur_roll)
             ch, sh = math.cos(cur_psi), math.sin(cur_psi)
 
-            r_north = ch * cp * ax + (ch * sp * sr - sh * cr) * ay + (ch * sp * cr + sh * sr) * az
-            r_east = sh * cp * ax + (sh * sp * sr + ch * cr) * ay + (sh * sp * cr - ch * sr) * az
+            a_fwd = ay - self.gravity * sp
+            a_lat = ax + self.gravity * sr
+            r_north = a_fwd * ch - a_lat * sh
+            r_east = a_fwd * sh + a_lat * ch
 
             if stationary:
                 cur_vx *= 0.1

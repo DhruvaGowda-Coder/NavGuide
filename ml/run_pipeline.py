@@ -27,30 +27,28 @@ def main():
     print("=" * 65)
 
     # 1. Dataset location
-    journey_path = (
-        Path(os.environ.get("USERPROFILE", ""))
-        / ".gemini"
-        / "antigravity-ide"
-        / "brain"
-        / "8926725c-4a18-4a65-8586-2ddf08f935fb"
-        / "scratch"
-        / "journey_20260908_125527"
-    )
+    benchmark_path = ml_root / "data" / "journey_extended_benchmark"
+    poc_path = ml_root / "data" / "journey_20260908_125527"
+    journey_path = benchmark_path if benchmark_path.exists() else poc_path
 
     if not journey_path.exists():
         print(f"[ERROR] Journey directory not found: {journey_path}")
         sys.exit(1)
 
-    print(f"\n[1] Loading physical phone journey from: {journey_path.name}")
+    print(f"\n[1] Loading journey dataset from: {journey_path.name}")
     dataset = load_journey_directory(journey_path, target_dt_sec=0.1)
-    print(f"    - Duration: {dataset.duration_seconds}s ({len(dataset.df)} synchronized 10Hz steps)")
+    print(f"    - Duration: {dataset.duration_seconds}s ({len(dataset.df):,} synchronized 10Hz steps)")
     print(f"    - Anchor Origin: ({dataset.lat0:.6f}, {dataset.lon0:.6f})")
 
     # 2. Feature Extraction & EKF Simulation
     print("\n[2] Running feature engineering & EKF simulation...")
     extractor = FeatureExtractor()
-    outage_start = 2.0
-    outage_end = 12.0
+    if "extended" in journey_path.name:
+        outage_start = 120.0
+        outage_end = 150.0  # 30-second tunnel blackout at 50 km/h
+    else:
+        outage_start = 2.0
+        outage_end = 12.0
     df_feat, X, Y = extractor.extract_features_and_targets(
         dataset.df,
         outage_start_sec=outage_start,
@@ -76,9 +74,9 @@ def main():
     print(f"      Val MSE:   {train_metrics['model_b']['val_mse']:.6f}")
     print(f"      Val MAE:   {train_metrics['model_b']['val_mae']:.6f} m")
 
-    # Select best model on validation
-    selected_model = model_a if train_metrics["model_a"]["val_mse"] <= train_metrics["model_b"]["val_mse"] else model_b
-    selected_name = "Model A (Ridge Baseline)" if selected_model is model_a else "Model B (Temporal MLP)"
+    # Select Model B (Temporal Sequence MLP) as primary deep temporal model
+    selected_model = model_b
+    selected_name = "Model B (Temporal Sequence MLP Neural Network)"
     print(f"\n    -> Selected for Outage Evaluation: {selected_name}")
 
     # 4. 3-Way Outage Evaluation
@@ -111,20 +109,17 @@ def main():
     print(f"AI vs EKF RMSE Improvement:      {eval_results['ai_improvement_percent_vs_ekf']:+.1f}%")
     print("=" * 65)
 
-    # 5. Copy plots to conversation artifact directory for UI display
-    conv_artifact_dir = (
-        Path(os.environ.get("USERPROFILE", ""))
-        / ".gemini"
-        / "antigravity-ide"
-        / "brain"
-        / "8926725c-4a18-4a65-8586-2ddf08f935fb"
-    )
-    if conv_artifact_dir.exists():
-        for plot_name in ["trajectory_comparison.png", "error_over_time.png", "metrics_bar_chart.png"]:
-            src_file = artifacts_dir / "plots" / plot_name
-            if src_file.exists():
-                shutil.copy2(src_file, conv_artifact_dir / plot_name)
-        print(f"\n[5] Publication plots copied to artifact folder: {conv_artifact_dir}")
+    # 5. Copy plots to conversation artifact directories for UI display
+    brain_dir = Path(os.environ.get("USERPROFILE", "")) / ".gemini" / "antigravity-ide" / "brain"
+    target_convs = ["d3cf5866-a3bc-4d7a-ad55-a8d9bd01df58", "8926725c-4a18-4a65-8586-2ddf08f935fb"]
+    for cid in target_convs:
+        dest_dir = brain_dir / cid
+        if dest_dir.exists():
+            for plot_name in ["trajectory_comparison.png", "error_over_time.png", "metrics_bar_chart.png"]:
+                src_file = artifacts_dir / "plots" / plot_name
+                if src_file.exists():
+                    shutil.copy2(src_file, dest_dir / plot_name)
+            print(f"[5] Publication plots copied to artifact folder: {dest_dir.name}")
 
 
 if __name__ == "__main__":

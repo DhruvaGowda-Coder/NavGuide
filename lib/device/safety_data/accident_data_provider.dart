@@ -53,8 +53,14 @@ class AccidentDataProvider {
   Future<void> initialize({String? jsonString}) async {
     if (_isLoaded) return;
     try {
-      final content = jsonString ??
-          await rootBundle.loadString('assets/data/karnataka_accident_blackspots.json');
+      String? content = jsonString;
+      if (content == null) {
+        try {
+          content = await rootBundle.loadString('assets/data/all_india_accident_blackspots.json');
+        } catch (_) {
+          content = await rootBundle.loadString('assets/data/karnataka_accident_blackspots.json');
+        }
+      }
       final data = jsonDecode(content) as Map<String, dynamic>;
       final list = data['accident_blackspots'] as List<dynamic>? ?? [];
       _blackspots = list

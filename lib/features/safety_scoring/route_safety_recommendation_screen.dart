@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -37,19 +39,21 @@ class RouteSafetyRecommendationScreen extends StatefulWidget {
 class _RouteSafetyRecommendationScreenState
     extends State<RouteSafetyRecommendationScreen> {
   final RouteSafetyDataService _dataService = RouteSafetyDataService();
-  final SafetyScoringEngine _scoringEngine = const SafetyScoringEngine();
+  final SafetyScoringEngine _scoringEngine = SafetyScoringEngine();
   final BayesianRouteRiskEvaluator _bayesianEvaluator =
       const BayesianRouteRiskEvaluator();
 
   late RoutePreset _selectedPreset;
   ScoringMode _selectedMode = ScoringMode.balanced;
 
-  bool _isLoading = false;
+  bool _isLoading = true;
   String? _errorMessage;
   List<NormalizedRouteData> _candidateRoutes = [];
   List<RankedRoute> _rankedRoutes = [];
   int _selectedRouteIndex = 0;
   bool _isMapExpanded = false;
+  bool _is3dPerspective = true;
+  final Map<String, List<LatLng>> _latLngCache = {};
 
   GoogleMapController? _mapController;
 
@@ -82,7 +86,10 @@ class _RouteSafetyRecommendationScreenState
              widget.customOriginLon! >= 77.5945 &&
              widget.customOriginLon! <= 77.5947))) {
       try {
-        final pos = await Geolocator.getLastKnownPosition();
+        final pos = await Geolocator.getLastKnownPosition().timeout(
+          const Duration(milliseconds: 500),
+          onTimeout: () => null,
+        );
         if (pos != null) {
           oLat = pos.latitude;
           oLon = pos.longitude;
@@ -102,6 +109,13 @@ class _RouteSafetyRecommendationScreenState
       );
 
       final ranked = _scoringEngine.rankRoutes(routes, mode: _selectedMode);
+
+      _latLngCache.clear();
+      for (final r in routes) {
+        _latLngCache[r.routeId] = r.fullPolyline
+            .map((p) => LatLng(p.lat, p.lon))
+            .toList(growable: false);
+      }
 
       if (!mounted) return;
       setState(() {
@@ -144,17 +158,64 @@ class _RouteSafetyRecommendationScreenState
       if (pt.lon > maxLon) maxLon = pt.lon;
     }
     if (minLat < maxLat) {
+      final double centerLat = (minLat + maxLat) / 2;
+      final double centerLon = (minLon + maxLon) / 2;
+      double bearing = 0.0;
+      if (route.fullPolyline.length >= 2) {
+        bearing = Geolocator.bearingBetween(
+          route.fullPolyline.first.lat,
+          route.fullPolyline.first.lon,
+          route.fullPolyline.last.lat,
+          route.fullPolyline.last.lon,
+        );
+      }
+
+      final maxDiff = math.max((maxLat - minLat).abs(), (maxLon - minLon).abs());
+      double zoom = 12.0;
+      if (maxDiff < 0.02) {
+        zoom = 14.8;
+      } else if (maxDiff < 0.06) {
+        zoom = 13.5;
+      } else if (maxDiff < 0.12) {
+        zoom = 12.2;
+      } else if (maxDiff < 0.25) {
+        zoom = 11.2;
+      } else if (maxDiff < 0.5) {
+        zoom = 10.2;
+      } else {
+        zoom = 9.0;
+      }
+
+      final double targetTilt = _is3dPerspective ? 65.0 : 0.0;
+      final double targetZoom = _is3dPerspective ? (zoom + 1.2) : zoom;
+      final double targetBearing = _is3dPerspective
+          ? (bearing.abs() > 0.1 ? bearing : 28.0)
+          : 0.0;
+
       try {
         _mapController!.animateCamera(
-          CameraUpdate.newLatLngBounds(
-            LatLngBounds(
-              southwest: LatLng(minLat - 0.005, minLon - 0.005),
-              northeast: LatLng(maxLat + 0.005, maxLon + 0.005),
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(centerLat, centerLon),
+              zoom: targetZoom,
+              tilt: targetTilt,
+              bearing: targetBearing,
             ),
-            50,
           ),
         );
-      } catch (_) {}
+      } catch (_) {
+        try {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngBounds(
+              LatLngBounds(
+                southwest: LatLng(minLat - 0.005, minLon - 0.005),
+                northeast: LatLng(maxLat + 0.005, maxLon + 0.005),
+              ),
+              50,
+            ),
+          );
+        } catch (_) {}
+      }
     }
   }
 
@@ -172,17 +233,52 @@ class _RouteSafetyRecommendationScreenState
     if (minLat < maxLat) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _mapController == null) return;
+        final double centerLat = (minLat + maxLat) / 2;
+        final double centerLon = (minLon + maxLon) / 2;
+        final maxDiff = math.max((maxLat - minLat).abs(), (maxLon - minLon).abs());
+        double zoom = 12.0;
+        if (maxDiff < 0.02) {
+          zoom = 14.8;
+        } else if (maxDiff < 0.06) {
+          zoom = 13.5;
+        } else if (maxDiff < 0.12) {
+          zoom = 12.0;
+        } else if (maxDiff < 0.25) {
+          zoom = 11.0;
+        } else if (maxDiff < 0.5) {
+          zoom = 10.0;
+        } else {
+          zoom = 8.8;
+        }
+
+        final double targetTilt = _is3dPerspective ? 65.0 : 0.0;
+        final double targetZoom = _is3dPerspective ? (zoom + 1.2) : zoom;
+        final double targetBearing = _is3dPerspective ? 25.0 : 0.0;
+
         try {
           _mapController!.animateCamera(
-            CameraUpdate.newLatLngBounds(
-              LatLngBounds(
-                southwest: LatLng(minLat - 0.01, minLon - 0.01),
-                northeast: LatLng(maxLat + 0.01, maxLon + 0.01),
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: LatLng(centerLat, centerLon),
+                zoom: targetZoom,
+                tilt: targetTilt,
+                bearing: targetBearing,
               ),
-              50,
             ),
           );
-        } catch (_) {}
+        } catch (_) {
+          try {
+            _mapController!.animateCamera(
+              CameraUpdate.newLatLngBounds(
+                LatLngBounds(
+                  southwest: LatLng(minLat - 0.01, minLon - 0.01),
+                  northeast: LatLng(maxLat + 0.01, maxLon + 0.01),
+                ),
+                50,
+              ),
+            );
+          } catch (_) {}
+        }
       });
     }
   }
@@ -194,9 +290,10 @@ class _RouteSafetyRecommendationScreenState
     for (var i = 0; i < _rankedRoutes.length; i++) {
       if (i == _selectedRouteIndex) continue;
       final ranked = _rankedRoutes[i];
-      final points = ranked.route.fullPolyline
-          .map((p) => LatLng(p.lat, p.lon))
-          .toList();
+      final points = _latLngCache[ranked.route.routeId] ??
+          ranked.route.fullPolyline
+              .map((p) => LatLng(p.lat, p.lon))
+              .toList(growable: false);
 
       polylines.add(
         Polyline(
@@ -219,9 +316,10 @@ class _RouteSafetyRecommendationScreenState
     // Render selected route on top (standard green, width 7, zIndex 100)
     if (_rankedRoutes.isNotEmpty && _selectedRouteIndex < _rankedRoutes.length) {
       final selectedRanked = _rankedRoutes[_selectedRouteIndex];
-      final points = selectedRanked.route.fullPolyline
-          .map((p) => LatLng(p.lat, p.lon))
-          .toList();
+      final points = _latLngCache[selectedRanked.route.routeId] ??
+          selectedRanked.route.fullPolyline
+              .map((p) => LatLng(p.lat, p.lon))
+              .toList(growable: false);
       final isAvoid = selectedRanked.safetyScore.recommendationStatus ==
           RecommendationStatus.avoid;
 
@@ -256,7 +354,7 @@ class _RouteSafetyRecommendationScreenState
       Marker(
         markerId: const MarkerId('origin'),
         position: LatLng(oLat, oLon),
-        infoWindow: InfoWindow(title: 'Start: $oName'),
+        infoWindow: InfoWindow(title: 'Start: $oName', snippet: 'Your starting point'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       ),
     );
@@ -264,7 +362,7 @@ class _RouteSafetyRecommendationScreenState
       Marker(
         markerId: const MarkerId('destination'),
         position: LatLng(dLat, dLon),
-        infoWindow: InfoWindow(title: 'End: $dName'),
+        infoWindow: InfoWindow(title: 'Destination: $dName', snippet: 'Target reach point'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
@@ -302,6 +400,23 @@ class _RouteSafetyRecommendationScreenState
     }
 
     return markers;
+  }
+
+  Set<Circle> _buildCircles() {
+    final circles = <Circle>{};
+    final dLat = widget.customDestLat ?? _selectedPreset.destLat;
+    final dLon = widget.customDestLon ?? _selectedPreset.destLon;
+    circles.add(
+      Circle(
+        circleId: const CircleId('dest_reach_beacon'),
+        center: LatLng(dLat, dLon),
+        radius: 40.0,
+        strokeWidth: 2,
+        strokeColor: const Color(0xffef4444),
+        fillColor: const Color(0x28ef4444),
+      ),
+    );
+    return circles;
   }
 
   Color _getScoreColor(int score, RecommendationStatus status) {
@@ -358,45 +473,53 @@ class _RouteSafetyRecommendationScreenState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: currentRanked != null
-                                ? _getScoreColor(
-                                    currentRanked.safetyScore.overallScore,
-                                    currentRanked.safetyScore.recommendationStatus,
-                                  )
-                                : Colors.grey,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: currentRanked != null
+                                  ? _getScoreColor(
+                                      currentRanked.safetyScore.overallScore,
+                                      currentRanked.safetyScore.recommendationStatus,
+                                    )
+                                  : Colors.grey,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          currentRanked != null
-                              ? 'Route #${currentRanked.rank} • ${currentRanked.safetyScore.recommendationStatus.displayName}'
-                              : 'Evaluating...',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: currentRanked != null
-                                ? _getScoreColor(
-                                    currentRanked.safetyScore.overallScore,
-                                    currentRanked.safetyScore.recommendationStatus,
-                                  )
-                                : Colors.black87,
+                          const SizedBox(width: 6),
+                          Text(
+                            currentRanked != null
+                                ? 'Route #${currentRanked.rank} • ${currentRanked.safetyScore.recommendationStatus.displayName}'
+                                : 'Evaluating...',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: currentRanked != null
+                                  ? _getScoreColor(
+                                      currentRanked.safetyScore.overallScore,
+                                      currentRanked.safetyScore.recommendationStatus,
+                                    )
+                                  : Colors.black87,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      currentRanked != null
-                          ? '${currentRanked.safetyScore.overallScore}/100 Safety • ${(currentRanked.route.trafficDurationSeconds / 60).round()} min (${(currentRanked.route.distanceMeters / 1000).toStringAsFixed(1)} km)'
-                          : '',
-                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        currentRanked != null
+                            ? '${currentRanked.safetyScore.overallScore}/100 Safety • ${(currentRanked.route.trafficDurationSeconds / 60).round()} min (${(currentRanked.route.distanceMeters / 1000).toStringAsFixed(1)} km)'
+                            : '',
+                        style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
                     ),
                   ],
                 ),
@@ -478,10 +601,12 @@ class _RouteSafetyRecommendationScreenState
                             ),
                             polylines: _buildPolylines(),
                             markers: _buildMarkers(),
+                            circles: _buildCircles(),
                             onMapCreated: (ctrl) {
                               _mapController = ctrl;
                               _fitMapToRoutes();
                             },
+                            buildingsEnabled: true,
                             myLocationButtonEnabled: false,
                             zoomControlsEnabled: false,
                             mapToolbarEnabled: false,
@@ -520,33 +645,89 @@ class _RouteSafetyRecommendationScreenState
                           Positioned(
                             top: 8,
                             right: 8,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.92),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: const [
-                                  BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2)),
-                                ],
-                              ),
-                              child: IconButton(
-                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                                padding: EdgeInsets.zero,
-                                icon: Icon(
-                                  _isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
-                                  size: 20,
-                                  color: const Color(0xff23695a),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // 3D / 2D Perspective Toggle Button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: _is3dPerspective ? const Color(0xff23695a) : Colors.white.withValues(alpha: 0.94),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: const [
+                                      BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() {
+                                          _is3dPerspective = !_is3dPerspective;
+                                        });
+                                        if (_rankedRoutes.isNotEmpty && _selectedRouteIndex < _rankedRoutes.length) {
+                                          _fitMapToRoute(_rankedRoutes[_selectedRouteIndex].route);
+                                        } else {
+                                          _fitMapToRoutes();
+                                        }
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.view_in_ar_rounded,
+                                              size: 15,
+                                              color: _is3dPerspective ? Colors.white : const Color(0xff23695a),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _is3dPerspective ? '3D' : '2D',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w900,
+                                                color: _is3dPerspective ? Colors.white : const Color(0xff23695a),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                tooltip: _isMapExpanded ? 'Minimize Map' : 'Expand Map',
-                                onPressed: () {
-                                  setState(() {
-                                    _isMapExpanded = !_isMapExpanded;
-                                  });
-                                  Future.delayed(const Duration(milliseconds: 260), _fitMapToRoutes);
-                                },
-                              ),
+                                const SizedBox(width: 6),
+                                // Maximize / Minimize Map Button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                    padding: EdgeInsets.zero,
+                                    icon: Icon(
+                                      _isMapExpanded ? Icons.fullscreen_exit : Icons.fullscreen,
+                                      size: 20,
+                                      color: const Color(0xff23695a),
+                                    ),
+                                    tooltip: _isMapExpanded ? 'Minimize Map' : 'Expand Map',
+                                    onPressed: () {
+                                      setState(() {
+                                        _isMapExpanded = !_isMapExpanded;
+                                      });
+                                      Future.delayed(const Duration(milliseconds: 260), _fitMapToRoutes);
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -669,12 +850,13 @@ class _RouteSafetyRecommendationScreenState
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < _rankedRoutes.length; i++) ...[
             Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 onTap: () {
                   setState(() {
                     _selectedRouteIndex = i;
@@ -684,7 +866,7 @@ class _RouteSafetyRecommendationScreenState
                 child: _buildRouteSummaryCard(i, _rankedRoutes[i]),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
           ],
         ],
       ),
@@ -697,107 +879,120 @@ class _RouteSafetyRecommendationScreenState
     final status = ranked.safetyScore.recommendationStatus;
     final scoreColor = _getScoreColor(score, status);
 
-    return Container(
-      width: 210,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xff23695a).withValues(alpha: 0.08)
-            : Colors.white,
-        border: Border.all(
-          color: isSelected ? const Color(0xff23695a) : Colors.grey.shade300,
-          width: isSelected ? 2.0 : 1.0,
+    return SizedBox(
+      width: 225,
+      height: 112,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xff23695a).withValues(alpha: 0.08)
+              : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xff23695a) : Colors.grey.shade300,
+            width: isSelected ? 2.0 : 1.0,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: const Color(0xff23695a).withValues(alpha: 0.15),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          if (isSelected)
-            BoxShadow(
-              color: const Color(0xff23695a).withValues(alpha: 0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: status == RecommendationStatus.avoid
-                      ? Colors.red.shade100
-                      : (ranked.rank == 1
-                          ? Colors.green.shade100
-                          : Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  status == RecommendationStatus.avoid
-                      ? 'AVOID'
-                      : '#${ranked.rank} ${status.displayName.toUpperCase()}',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
                     color: status == RecommendationStatus.avoid
-                        ? Colors.red.shade900
-                        : (ranked.rank == 1 ? Colors.green.shade900 : Colors.black87),
+                        ? Colors.red.shade100
+                        : (ranked.rank == 1
+                            ? Colors.green.shade100
+                            : Colors.grey.shade200),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    status == RecommendationStatus.avoid
+                        ? 'AVOID'
+                        : '#${ranked.rank} ${status.displayName.toUpperCase()}',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: status == RecommendationStatus.avoid
+                          ? Colors.red.shade900
+                          : (ranked.rank == 1 ? Colors.green.shade900 : Colors.black87),
+                    ),
                   ),
                 ),
-              ),
-              const Spacer(),
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: scoreColor.withValues(alpha: 0.15),
-                child: Text(
-                  '$score',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: scoreColor,
+                const Spacer(),
+                CircleAvatar(
+                  radius: 13,
+                  backgroundColor: scoreColor.withValues(alpha: 0.15),
+                  child: Text(
+                    '$score',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: scoreColor,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            ranked.route.summary.isNotEmpty
-                ? ranked.route.summary
-                : 'Corridor via ${ranked.route.segments.firstOrNull?.roadName ?? "Highway"}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                '${(ranked.route.distanceMeters / 1000).toStringAsFixed(1)} km',
-                style: const TextStyle(fontSize: 11, color: Colors.black87),
-              ),
-              const Text(' • ', style: TextStyle(color: Colors.black54)),
-              Text(
-                '${(ranked.route.trafficDurationSeconds / 60).round()} min',
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-            ],
-          ),
-          if (ranked.timeDeltaSeconds > 0)
-            Text(
-              ranked.timeDeltaFormatted,
-              style: TextStyle(
-                fontSize: 10,
-                color: ranked.timeDeltaSeconds > 300
-                    ? Colors.orange.shade800
-                    : Colors.black54,
-              ),
+              ],
             ),
-        ],
+            Text(
+              ranked.route.summary.isNotEmpty
+                  ? ranked.route.summary
+                  : 'Corridor via ${ranked.route.segments.firstOrNull?.roadName ?? "Highway"}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            Row(
+              children: [
+                Text(
+                  '${(ranked.route.distanceMeters / 1000).toStringAsFixed(1)} km',
+                  style: const TextStyle(fontSize: 11, color: Colors.black87),
+                ),
+                const Text(' • ', style: TextStyle(color: Colors.black54)),
+                Text(
+                  '${(ranked.route.trafficDurationSeconds / 60).round()} min',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+                const Spacer(),
+                if (ranked.timeDeltaSeconds > 0)
+                  Text(
+                    ranked.timeDeltaFormatted,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: ranked.timeDeltaSeconds > 300
+                          ? Colors.orange.shade800
+                          : Colors.black54,
+                    ),
+                  )
+                else if (ranked.rank == 1)
+                  Text(
+                    'Optimal',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

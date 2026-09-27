@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "496303044045-74r9is7kdpsj456t590s4kp4cibpc1tf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.navguardian.navguardian_ai",
+            "certificate_hash": "766fbbd30674af36140cfa6fd8bebd81de0722f6"
+          }
+        },
+        {
           "client_id": "496303044045-252bbfnoaoo32o0rpirj2et0l0gneev1.apps.googleusercontent.com",
           "client_type": 3
         }

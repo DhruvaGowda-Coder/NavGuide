@@ -16,6 +16,11 @@ dependencies:
   connectivity_plus: ^7.3.1
   path_provider: ^2.1.6
   url_launcher: ^6.3.0
+  share_plus: ^13.3.0
+  flutter_tts: ^4.2.5
+  flutter_local_notifications: ^22.3.1
+  google_sign_in: ^7.2.0
+
 
 dev_dependencies:
   flutter_test:
@@ -28,6 +33,8 @@ flutter:
   assets:
     - assets/data/
     - assets/navguide_icon.png
+    - assets/navguide_logo.png
+    - assets/banners/
 
 flutter_launcher_icons:
   android: true

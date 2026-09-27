@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:io';
+import '../dead_reckoning/dead_reckoning_engine.dart';
 
 /// Intermediate raw candidate route before safety data normalization.
 class RawRouteCandidate {
@@ -96,10 +97,10 @@ class GoogleRouteProvider implements RouteProvider {
       '&key=$apiKey',
     );
 
-    final request = await _client.getUrl(uri).timeout(const Duration(seconds: 8));
+    final request = await _client.getUrl(uri).timeout(const Duration(milliseconds: 4500));
     request.headers.set('X-Android-Package', 'com.navguardian.navguardian_ai');
 
-    final response = await request.close().timeout(const Duration(seconds: 8));
+    final response = await request.close().timeout(const Duration(milliseconds: 4500));
     if (response.statusCode != 200) {
       throw HttpException('Google Routes HTTP ${response.statusCode}');
     }
@@ -287,8 +288,8 @@ class OsrmRouteProvider implements RouteProvider {
       '?overview=full&geometries=geojson&steps=true&alternatives=true',
     );
 
-    final request = await _client.getUrl(uri).timeout(const Duration(seconds: 8));
-    final response = await request.close().timeout(const Duration(seconds: 8));
+    final request = await _client.getUrl(uri).timeout(const Duration(milliseconds: 3500));
+    final response = await request.close().timeout(const Duration(milliseconds: 3500));
 
     if (response.statusCode != 200) {
       throw HttpException('OSRM Route Engine HTTP ${response.statusCode}');
@@ -341,8 +342,8 @@ class OsrmRouteProvider implements RouteProvider {
               '$originLon,$originLat;${wp.lon},${wp.lat};$destLon,$destLat'
               '?overview=full&geometries=geojson&steps=true',
             );
-            final altReq = await _client.getUrl(altUri).timeout(const Duration(milliseconds: 2500));
-            final altResp = await altReq.close().timeout(const Duration(milliseconds: 2500));
+            final altReq = await _client.getUrl(altUri).timeout(const Duration(milliseconds: 1800));
+            final altResp = await altReq.close().timeout(const Duration(milliseconds: 1800));
             if (altResp.statusCode == 200) {
               final altBody = await altResp.transform(utf8.decoder).join();
               final altJson = jsonDecode(altBody) as Map<String, dynamic>;
@@ -429,5 +430,60 @@ class PolylineUtils {
       points.add((lat: lat / 1e5, lon: lng / 1e5));
     }
     return points;
+  }
+}
+
+/// Resilient on-device routing fallback when network connections to Google & OSRM are unreachable.
+class OfflineFallbackRouteProvider implements RouteProvider {
+  @override
+  Future<List<RawRouteCandidate>> computeRoutes({
+    required double originLat,
+    required double originLon,
+    required double destLat,
+    required double destLon,
+    required String originName,
+    required String destName,
+  }) async {
+    final rawDistMeters = GeodesyUtils.haversineDistanceMeters(originLat, originLon, destLat, destLon);
+    final distMeters = rawDistMeters * 1.25; // 1.25x for typical urban & highway road curvature
+    final durationSec = (distMeters / 1000.0 / 42.0) * 3600.0; // average 42 km/h city/highway speed
+
+    // Generate smooth, multi-point road spline along the corridor
+    final points = <({double lat, double lon})>[];
+    const segments = 16;
+    for (int i = 0; i <= segments; i++) {
+      final f = i / segments.toDouble();
+      final arcOffset = math.sin(f * math.pi) * 0.002;
+      points.add((
+        lat: originLat + (destLat - originLat) * f + arcOffset,
+        lon: originLon + (destLon - originLon) * f - arcOffset,
+      ));
+    }
+
+    final step = RawRouteStep(
+      instruction: 'Head towards $destName along direct connecting corridor',
+      roadName: 'Main Connecting Road',
+      startLat: originLat,
+      startLon: originLon,
+      endLat: destLat,
+      endLon: destLon,
+      distanceMeters: distMeters,
+      durationSeconds: durationSec,
+      polyline: points,
+    );
+
+    return [
+      RawRouteCandidate(
+        routeId: 'fallback_offline_corridor',
+        summary: 'Direct Road Corridor to $destName',
+        providerName: 'NavGuide Direct Route (Offline Resilient)',
+        distanceMeters: distMeters,
+        staticDurationSeconds: durationSec,
+        trafficDurationSeconds: durationSec,
+        fullPolyline: points,
+        steps: [step],
+        travelAdvisories: const ['Offline Direct Corridor · Reconnecting to Live Traffic'],
+      ),
+    ];
   }
 }

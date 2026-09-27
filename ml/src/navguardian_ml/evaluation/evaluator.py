@@ -61,8 +61,8 @@ def evaluate_3way(
     dr_y = np.zeros(len(df_outage))
     cur_dr_x = df_outage["gps_x"].iloc[0]
     cur_dr_y = df_outage["gps_y"].iloc[0]
-    cur_dr_vx = 0.0
-    cur_dr_vy = 0.0
+    cur_dr_vx = float(df_outage["ekf_vx"].iloc[0])
+    cur_dr_vy = float(df_outage["ekf_vy"].iloc[0])
 
     for i in range(len(df_outage)):
         is_stat = df_outage["is_stationary"].iloc[i] > 0.5

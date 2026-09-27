@@ -16,6 +16,10 @@ import '../../domain/telemetry.dart';
 import '../crowdsourcing/hazard_report_screen.dart';
 import '../journey/journey_completion_report_screen.dart';
 import '../location/location_controller.dart';
+import '../common/location_share_sheet.dart';
+import '../../device/voice/voice_guidance_service.dart';
+import '../../device/navigation/background_navigation_service.dart';
+import '../../device/safety/speed_and_curve_safety_monitor.dart';
 
 /// Live Turn-by-Turn Navigation Screen with Real-Time NavGuardian AI Dead Reckoning,
 /// simulated blackout presentation mode, and live crowdsourced hazard alerts.
@@ -34,6 +38,13 @@ class LiveNavigationScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
+  // Voice Guidance Service (Indian English Text-To-Speech)
+  final _voiceGuidance = VoiceGuidanceService();
+
+  // Background Lock-Screen Notification & Curve/Speed Safety
+  final _bgNavService = BackgroundNavigationService.instance;
+  final _speedCurveMonitor = SpeedAndCurveSafetyMonitor();
+
   GoogleMapController? _mapController;
   final _hazardService = CrowdsourcedHazardService.instance;
 
@@ -98,6 +109,10 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   double _distanceToUpcomingHazardMeters = 0.0;
   final Set<String> _dismissedHazardIds = {};
 
+  // Voice maneuver milestone tracking
+  int _lastAnnouncedManeuverIndex = -1;
+  int _lastAnnouncedMilestoneMeters = -1;
+
   // Sensors subscription
   StreamSubscription<SensorSample>? _accelSub;
   StreamSubscription<SensorSample>? _gyroSub;
@@ -155,6 +170,16 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     _subscribeSensors();
     _subscribeRealGps();
     _startGpsWatchdog();
+
+    _bgNavService.initialize().then((_) {
+      if (mounted) _updateBackgroundNotification();
+    });
+
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) {
+        _voiceGuidance.speakNavigationStart(widget.destinationName);
+      }
+    });
   }
 
   Future<void> _loadNavigationIcons() async {
@@ -407,6 +432,15 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
         _stepDeadReckoningPosition();
       }
 
+      _checkAndSpeakTurnManeuver();
+      _speedCurveMonitor.evaluateSafety(
+        currentSpeedKmh: _currentSpeedKmh,
+        currentPosition: _currentPosition,
+        polylinePoints: _routePolylinePoints,
+        targetPolylineIndex: _targetPolylineIndex,
+        voiceGuidance: _voiceGuidance,
+      );
+      _updateBackgroundNotification();
       _checkUpcomingHazards();
       _checkArrival();
       _centerMapOnVehicle();
@@ -539,6 +573,15 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             _stepDeadReckoningPosition();
           }
 
+          _checkAndSpeakTurnManeuver();
+          _speedCurveMonitor.evaluateSafety(
+            currentSpeedKmh: _currentSpeedKmh,
+            currentPosition: _currentPosition,
+            polylinePoints: _routePolylinePoints,
+            targetPolylineIndex: _targetPolylineIndex,
+            voiceGuidance: _voiceGuidance,
+          );
+          _updateBackgroundNotification();
           _checkUpcomingHazards();
           _checkArrival();
           _centerMapOnVehicle();
@@ -560,10 +603,51 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     );
 
     if (distM <= 50.0 || _targetPolylineIndex >= _routePolylinePoints.length - 1) {
+      _bgNavService.cancel();
+      if (!_hasArrived) {
+        _voiceGuidance.speakArrival(widget.destinationName);
+      }
       setState(() {
         _hasArrived = true;
       });
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(dest, 18.0),
+      );
     }
+  }
+
+  void _updateBackgroundNotification() {
+    if (_hasArrived) {
+      _bgNavService.cancel();
+      return;
+    }
+
+    final remainingDistKm = _calculateRemainingDistanceMeters() / 1000.0;
+    final speed = _currentSpeedKmh > 5.0 ? _currentSpeedKmh : 25.0;
+    final remainingMin = ((remainingDistKm / speed) * 60).round().clamp(1, 480);
+    final etaTime = DateTime.now().add(Duration(minutes: remainingMin));
+    final etaClockStr = '${etaTime.hour.toString().padLeft(2, '0')}:${etaTime.minute.toString().padLeft(2, '0')}';
+
+    String maneuverText = 'Follow route';
+    if (_targetPolylineIndex < _routePolylinePoints.length - 1) {
+      final nextPt = _routePolylinePoints[_targetPolylineIndex];
+      final distToTurn = GeodesyUtils.haversineDistanceMeters(
+        _currentPosition.latitude,
+        _currentPosition.longitude,
+        nextPt.latitude,
+        nextPt.longitude,
+      );
+      maneuverText = distToTurn <= 50.0 ? 'Turn approaching' : 'Continue straight';
+    }
+
+    _bgNavService.showOrUpdateNavigationNotification(
+      maneuverText: maneuverText,
+      destinationName: widget.destinationName,
+      remainingDistance: '${remainingDistKm.toStringAsFixed(1)} km',
+      eta: etaClockStr,
+      speedKmh: _currentSpeedKmh.round(),
+      isGpsLost: _isBlackoutEngaged,
+    );
   }
 
   void _checkUpcomingHazards() {
@@ -590,11 +674,83 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
       }
     }
 
+    if (closest != null && minDistance <= 250.0) {
+      _voiceGuidance.speakHazard(
+        hazardType: closest.hazardType.name,
+        distanceMeters: minDistance,
+      );
+    }
+
     if (!mounted) return;
     setState(() {
       _upcomingHazard = closest;
       _distanceToUpcomingHazardMeters = minDistance;
     });
+  }
+
+  void _checkAndSpeakTurnManeuver() {
+    if (_hasArrived || _routePolylinePoints.isEmpty) return;
+
+    // Scan ahead along polyline from current position up to 1200m to find the next real corner/turn
+    double accumulatedDistance = 0.0;
+    LatLng prevPt = _currentPosition;
+
+    for (int i = _targetPolylineIndex; i < _routePolylinePoints.length - 1; i++) {
+      final curPt = _routePolylinePoints[i];
+      final nextPt = _routePolylinePoints[i + 1];
+
+      accumulatedDistance += GeodesyUtils.haversineDistanceMeters(
+        prevPt.latitude,
+        prevPt.longitude,
+        curPt.latitude,
+        curPt.longitude,
+      );
+
+      if (accumulatedDistance > 1200.0) break; // Beyond lookahead horizon
+
+      // Check bearing difference between segment (prev -> cur) and (cur -> next)
+      final b1 = _calculateBearing(prevPt, curPt);
+      final b2 = _calculateBearing(curPt, nextPt);
+      var delta = (b2 - b1 + 360) % 360;
+      if (delta > 180) delta -= 360;
+
+      if (delta.abs() >= 32.0) {
+        // Found the next upcoming turn junction
+        String turnInstruction = 'turn right';
+        if (delta < -32.0 && delta >= -145.0) {
+          turnInstruction = 'turn left';
+        } else if (delta > 32.0 && delta <= 145.0) {
+          turnInstruction = 'turn right';
+        } else if (delta.abs() > 145.0) {
+          turnInstruction = 'make a U-turn';
+        }
+
+        // Determine discrete milestone windows (500m, 200m, immediate <= 45m)
+        int milestone = -1;
+        if (accumulatedDistance <= 45.0) {
+          milestone = 0; // Immediate execution
+        } else if (accumulatedDistance >= 150.0 && accumulatedDistance <= 250.0) {
+          milestone = 200;
+        } else if (accumulatedDistance >= 450.0 && accumulatedDistance <= 550.0) {
+          milestone = 500;
+        }
+
+        // Only speak if this specific turn milestone hasn't been triggered yet
+        if (milestone != -1 &&
+            (_lastAnnouncedManeuverIndex != i || _lastAnnouncedMilestoneMeters != milestone)) {
+          _lastAnnouncedManeuverIndex = i;
+          _lastAnnouncedMilestoneMeters = milestone;
+
+          _voiceGuidance.speakManeuver(
+            instruction: turnInstruction,
+            distanceMeters: accumulatedDistance,
+          );
+        }
+        return; // Only evaluate the first upcoming turn
+      }
+
+      prevPt = curPt;
+    }
   }
 
   void _centerMapOnVehicle({bool force = false}) {
@@ -668,7 +824,7 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             backgroundColor: Color(0xffd32f2f),
             duration: Duration(seconds: 3),
             content: Text(
-              '⚠️ SIMULATED GPS BLACKOUT ACTIVE!\nNavGuardian AI (Dead Reckoning + EKF + AI Drift) is steering vehicle position.',
+              '⚠️ SIMULATED GPS BLACKOUT ACTIVE!\nNavGuide (Dead Reckoning + EKF + AI Drift) is steering vehicle position.',
             ),
           ),
         );
@@ -690,6 +846,8 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
   }
 
   void _endJourney() {
+    _bgNavService.cancel();
+    _voiceGuidance.stop();
     _simulatedProgressTimer?.cancel();
     _gpsWatchdogTimer?.cancel();
     _gpsSub?.cancel();
@@ -722,6 +880,19 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    _bgNavService.cancel();
+    _simulatedProgressTimer?.cancel();
+    _gpsWatchdogTimer?.cancel();
+    _gpsSub?.cancel();
+    _accelSub?.cancel();
+    _gyroSub?.cancel();
+    _magSub?.cancel();
+    _voiceGuidance.dispose();
+    super.dispose();
+  }
+
   void _openQuickReportModal() {
     showModalBottomSheet(
       context: context,
@@ -735,17 +906,6 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
             : 'Active Route',
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _simulatedProgressTimer?.cancel();
-    _gpsWatchdogTimer?.cancel();
-    _gpsSub?.cancel();
-    _accelSub?.cancel();
-    _gyroSub?.cancel();
-    _magSub?.cancel();
-    super.dispose();
   }
 
   @override
@@ -812,6 +972,24 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                         _isBlackoutEngaged ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueAzure,
                       ),
                 ),
+                // Destination Reach Point Marker (changes to celebratory green flag/pin on reach)
+                if (_routePolylinePoints.isNotEmpty)
+                  Marker(
+                    markerId: const MarkerId('destination_reach_marker'),
+                    position: _routePolylinePoints.last,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      _hasArrived ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
+                    ),
+                    infoWindow: InfoWindow(
+                      title: _hasArrived
+                          ? '🏁 Destination Reached!'
+                          : 'End: ${widget.destinationName}',
+                      snippet: _hasArrived
+                          ? 'Safely arrived at destination point'
+                          : 'Target arrival point',
+                    ),
+                    zIndexInt: 998,
+                  ),
                 // Upcoming hazard markers along corridor
                 for (final h in _hazardService.getNearbyHazards(
                   lat: _currentPosition.latitude,
@@ -830,6 +1008,21 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                       title: '${h.hazardType.displayName} (${h.severity})',
                       snippet: h.description,
                     ),
+                  ),
+              },
+              circles: {
+                if (_routePolylinePoints.isNotEmpty)
+                  Circle(
+                    circleId: const CircleId('destination_reach_zone'),
+                    center: _routePolylinePoints.last,
+                    radius: _hasArrived ? 55.0 : 35.0,
+                    strokeWidth: 2,
+                    strokeColor: _hasArrived
+                        ? const Color(0xff10b981)
+                        : const Color(0xffe11d48),
+                    fillColor: _hasArrived
+                        ? const Color(0x3310b981)
+                        : const Color(0x22e11d48),
                   ),
               },
               myLocationEnabled: false,
@@ -1038,9 +1231,11 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                       ),
                     ),
                     Text(
-                      widget.selectedRoute.route.summary.isNotEmpty
-                          ? widget.selectedRoute.route.summary
-                          : widget.destinationName,
+                      widget.destinationName.trim().isNotEmpty && widget.destinationName != 'Destination Point'
+                          ? widget.destinationName
+                          : (widget.selectedRoute.route.summary.isNotEmpty
+                              ? widget.selectedRoute.route.summary
+                              : 'Destination'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1051,6 +1246,43 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _voiceGuidance.isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: _voiceGuidance.isMuted ? Colors.white38 : const Color(0xffa7f3d0),
+                ),
+                tooltip: _voiceGuidance.isMuted ? 'Unmute Voice Guidance' : 'Mute Voice Guidance',
+                onPressed: () {
+                  setState(() {
+                    _voiceGuidance.toggleMute();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _voiceGuidance.isMuted
+                            ? '🔇 Voice Guidance Muted'
+                            : '🔊 Voice Guidance Enabled (Indian English)',
+                      ),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.share_location_rounded, color: Colors.white70),
+                tooltip: 'Share Trip Progress',
+                onPressed: () {
+                  LocationShareSheet.shareDirectly(
+                    latitude: _currentPosition.latitude,
+                    longitude: _currentPosition.longitude,
+                    destinationName: widget.destinationName,
+                    tripEta: '$remainingMin min ($etaClockStr)',
+                    remainingDistance: '${remainingDistKm.toStringAsFixed(1)} km',
+                    speedKmh: _currentSpeedKmh.toInt(),
+                  );
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.warning_amber_rounded, color: Colors.white70),
@@ -1371,81 +1603,103 @@ class _LiveNavigationScreenState extends ConsumerState<LiveNavigationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Big Green Remaining Duration
-                    Row(
-                      children: [
-                        Text(
-                          timeRemainingStr,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xff1b873f), // Signature Google Maps Green
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        if (_currentSpeedKmh >= 15.0) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.green.shade200),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Text(
+                            timeRemainingStr,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xff1b873f), // Signature Google Maps Green
+                              letterSpacing: -0.5,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.speed_rounded, size: 12, color: Colors.green.shade700),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '${_currentSpeedKmh.toStringAsFixed(0)} km/h',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade700,
+                          ),
+                          if (_currentSpeedKmh >= 15.0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.green.shade200),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.speed_rounded, size: 12, color: Colors.green.shade700),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${_currentSpeedKmh.toStringAsFixed(0)} km/h',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade700,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     // Distance + ETA Clock Time + Destination
-                    Row(
-                      children: [
-                        Text(
-                          '${remainingKm.toStringAsFixed(1)} km',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Text(
+                            '${remainingKm.toStringAsFixed(1)} km',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                          child: Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-                        ),
-                        Icon(Icons.schedule_rounded, size: 12, color: Colors.grey.shade600),
-                        const SizedBox(width: 3),
-                        Text(
-                          etaClockStr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade800,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            child: Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
                           ),
-                        ),
-                      ],
+                          Icon(Icons.schedule_rounded, size: 12, color: Colors.grey.shade600),
+                          const SizedBox(width: 3),
+                          Text(
+                            etaClockStr,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Action Buttons: Simulation Play/Pause + Exit
+              // Action Buttons: Share Trip + Simulation Play/Pause + Exit
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.share_location_rounded, color: Color(0xff23695a), size: 24),
+                    tooltip: 'Share Trip Progress',
+                    onPressed: () {
+                      LocationShareSheet.shareDirectly(
+                        latitude: _currentPosition.latitude,
+                        longitude: _currentPosition.longitude,
+                        destinationName: widget.destinationName,
+                        tripEta: '$remainingMins min ($etaClockStr)',
+                        remainingDistance: '${remainingKm.toStringAsFixed(1)} km',
+                        speedKmh: _currentSpeedKmh.toInt(),
+                      );
+                    },
+                  ),
                   IconButton(
                     icon: Icon(
                       _isDemoSimulationMode ? Icons.pause_circle_filled_rounded : Icons.play_circle_outline_rounded,

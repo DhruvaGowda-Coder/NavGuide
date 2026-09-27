@@ -82,7 +82,7 @@ class _JourneyCompletionReportScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Color(0xff23695a),
-        content: Text('Thank you! Your rating helps the NavGuardian AI community.'),
+        content: Text('Thank you! Your rating helps the NavGuide community.'),
       ),
     );
   }
@@ -194,7 +194,7 @@ class _JourneyCompletionReportScreenState
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'NavGuardian AI Estimation Report',
+                          'NavGuide Estimation Report',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Container(

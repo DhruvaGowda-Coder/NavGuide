@@ -440,12 +440,14 @@ class _CommunityHazardsScreenState extends ConsumerState<CommunityHazardsScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(18, 16, 18, 24 + MediaQuery.of(ctx).padding.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 Icon(_getHazardIcon(h.hazardType), color: Colors.orange.shade800, size: 24),
@@ -509,8 +511,9 @@ class _CommunityHazardsScreenState extends ConsumerState<CommunityHazardsScreen>
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   IconData _getHazardIcon(HazardType type) {
     return switch (type) {
