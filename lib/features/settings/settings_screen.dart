@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../sensors/sensor_debug_screen.dart';
 import '../roadmap/roadmap_screen.dart';
+import '../journey/backend_flow_animation_screen.dart';
 import '../../device/crowdsourcing/crowdsourced_hazard_service.dart';
 import '../../device/safety_data/route_safety_data_service.dart';
 import '../../device/railway/online_train_service.dart';
@@ -302,6 +303,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const SensorDebugScreen()),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline_rounded, color: Color(0xff23695a)),
+                title: const Text('Backend Flow & ML Animator', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text('Interactive animation comparing path tracing & TSP graph with vs. without ML', style: TextStyle(fontSize: 11)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BackendFlowAnimationScreen()),
                   );
                 },
               ),

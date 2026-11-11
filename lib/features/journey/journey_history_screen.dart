@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../domain/telemetry.dart';
 import '../location/location_controller.dart';
+import 'backend_flow_animation_screen.dart';
 import 'journey_analysis_screen.dart';
 
 class JourneyHistoryScreen extends ConsumerWidget {
@@ -101,6 +102,30 @@ class JourneyHistoryScreen extends ConsumerWidget {
                     fontSize: 12,
                     color: Color(0xff334155),
                     height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xff23695a),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BackendFlowAnimationScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.play_circle_fill, size: 18),
+                    label: const Text(
+                      'Launch Backend Flow & ML Animation (Without vs. With ML)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],

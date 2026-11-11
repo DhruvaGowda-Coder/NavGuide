@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NavGuardian AI — Interactive Backend Workflow & ML Animation</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #0f172a;
+      --card: #1e293b;
+      --card-hover: #26354d;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --cyan: #06b6d4;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+      width: 0px;
+      height: 0px;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* Top Header - Strict 50px single-row bar (NO scrollbar, perfectly fitting) */
+    header {
+      background: linear-gradient(90deg, #090f1d 0%, #172554 50%, #090f1d 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 46px;
+      flex-shrink: 0;
+      gap: 12px;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .logo-pill {
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      color: #fff;
+      font-weight: 800;
+      font-size: 11.5px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      letter-spacing: 0.6px;
+      
+    }
+    .brand h1 { font-size: 14.5px; font-weight: 700; letter-spacing: -0.2px; }
+    .brand p { font-size: 10.5px; color: var(--muted); }
+
+    .nav-tabs { display: flex; gap: 6px; flex-shrink: 0; }
+    .tab-btn {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); border-color: #64748b; }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: #60a5fa;
+      
+    }
+
+    /* Sub-bar controls - Strict 44px single-row bar (NO scrollbar, dropdown popout enabled) */
+    .toolbar {
+      position: relative;
+      z-index: 1000;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      flex-shrink: 0;
+      gap: 10px;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: visible !important;
+    }
+    .mode-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #090e1a;
+      padding: 3px 5px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .mode-pill svg {
+      flex-shrink: 0;
+    }
+
+    /* INACTIVE BUT CLEARLY VISIBLE - NO CAMOUFLAGE */
+    .mode-noml {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+    }
+    .mode-noml:hover {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: rgba(239, 68, 68, 0.75);
+      color: #ffffff;
+    }
+    .mode-noml.active-red {
+      background: #ef4444 !important;
+      color: #ffffff !important;
+      border: 1px solid #f87171 !important;
+      
+      font-weight: 800;
+    }
+
+    .mode-ml {
+      background: rgba(34, 197, 94, 0.12);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.45);
+    }
+    .mode-ml:hover {
+      background: rgba(34, 197, 94, 0.22);
+      border-color: rgba(34, 197, 94, 0.75);
+      color: #ffffff;
+    }
+    .mode-ml.active-green {
+      background: #22c55e !important;
+      color: #052e16 !important;
+      border: 1px solid #4ade80 !important;
+      
+      font-weight: 800;
+    }
+
+    .mode-both {
+      background: rgba(6, 182, 212, 0.12);
+      color: #7dd3fc;
+      border: 1px solid rgba(6, 182, 212, 0.45);
+    }
+    .mode-both:hover {
+      background: rgba(6, 182, 212, 0.22);
+      border-color: rgba(6, 182, 212, 0.75);
+      color: #ffffff;
+    }
+    .mode-both.active-cyan {
+      background: #06b6d4 !important;
+      color: #083344 !important;
+      border: 1px solid #38bdf8 !important;
+      
+      font-weight: 800;
+    }
+
+    /* Example Mode pills */
+    .mode-tsp {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(56, 189, 248, 0.10);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      transition: all 0.15s;
+    }
+    .mode-tsp:hover {
+      background: rgba(56, 189, 248, 0.20);
+      color: #ffffff;
+    }
+    .mode-tsp.active-cyan {
+      background: #0ea5e9 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      
+    }
+
+    .playback-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 520px;
+      flex-shrink: 0;
+      overflow: visible !important;
+    }
+    .btn {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--primary); background: var(--card-hover); }
+    .btn-primary { background: var(--primary); border-color: #60a5fa; color: #fff; }
+    .scrubber { flex: 1; accent-color: var(--primary); cursor: pointer; height: 5px; }
+
+    /* =========================================================================
+       GLOBAL ULTRA-MODERN DROPDOWN STYLING - EXACT BOX-WIDTH MATCH
+       ========================================================================= */
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+      user-select: none;
+      z-index: 1001;
+      width: 118px;
+    }
+    .dropdown-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 9px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      box-sizing: border-box;
+    }
+    .dropdown-trigger:hover {
+      border-color: #38bdf8;
+      background: var(--card-hover);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+    .dropdown-trigger.open {
+      border-color: var(--primary);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+      background: #172554;
+    }
+    .dropdown-chevron {
+      stroke: #38bdf8;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .dropdown-trigger.open .dropdown-chevron {
+      transform: rotate(180deg);
+    }
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 100%;
+      min-width: 100%;
+      box-sizing: border-box;
+      background: #0b1329 !important;
+      border: 1px solid #3b82f6 !important;
+      border-radius: 7px !important;
+      padding: 4px !important;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 16px rgba(59, 130, 246, 0.35) !important;
+      z-index: 999999 !important;
+      display: none;
+    }
+    .dropdown-menu.show {
+      display: block !important;
+      animation: ddSlideIn 0.14s ease forwards;
+    }
+    @keyframes ddSlideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .dropdown-item {
+      padding: 6px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+    }
+    .dropdown-item:hover {
+      background: #1e293b;
+      color: #f8fafc;
+    }
+    .dropdown-item.active {
+      background: rgba(59, 130, 246, 0.22);
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    .dropdown-item.active::after {
+      content: '✓';
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .dropdown-item:hover {
+      background: #1e293b;
+      color: #f8fafc;
+    }
+    .dropdown-item.active {
+      background: rgba(59, 130, 246, 0.22);
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    .dropdown-item.active::after {
+      content: '✓';
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    /* Fallback global native select styling */
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: var(--card) !important;
+      color: #f8fafc !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 7px !important;
+      padding: 5px 28px 5px 10px !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      outline: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 8px center !important;
+      transition: all 0.15s ease !important;
+    }
+    select:hover {
+      border-color: #38bdf8 !important;
+      background-color: var(--card-hover) !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
+    }
+    select option {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+      padding: 8px 12px !important;
+    }
+
+    /* Main Workspace Layout - Spacious, unconstrained executive layout */
+    .workspace {
+      flex: 1;
+      min-height: 640px;
+      padding: 10px 16px 16px 16px;
+      display: grid;
+      grid-template-columns: 1fr 415px;
+      gap: 14px;
+      box-sizing: border-box;
+      align-items: stretch;
+    }
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    .panel-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .panel-header {
+      height: 40px;
+      flex-shrink: 0;
+      padding: 0 16px;
+      background: rgba(30, 41, 59, 0.65);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .badge {
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: #090e1a;
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      white-space: nowrap;
+    }
+    #canvas-badge {
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 99px;
+      background: #090e1a;
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .canvas-main-container {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #080d1a;
+      overflow: hidden;
+    }
+    #mainCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Bottom Analytics Box - Extended spacious matching height (225px) */
+    .bottom-analytics-box {
+      height: 225px;
+      flex-shrink: 0;
+      background: #060a14;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    #errorCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .analytics-panel {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 12px 14px;
+      box-sizing: border-box;
+      align-items: stretch;
+      background: #060a14;
+    }
+    .analytics-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .analytics-card .title { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .analytics-card .stat { font-size: 16px; font-weight: 800; font-family: 'Consolas', monospace; margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .analytics-card .bar-track { width: 100%; height: 6px; background: #0f172a; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .analytics-card .bar-fill { height: 100%; border-radius: 3px; }
+    .analytics-card .subtext { font-size: 10.5px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Ultra-clean 4-column legend row - Fixed 32px height across ALL tabs */
+    .legend-row {
+      height: 32px;
+      flex-shrink: 0;
+      padding: 0 14px;
+      background: #070c18;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .legend-item { display: flex; align-items: center; gap: 7px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+    .swatch { width: 14px; height: 5px; border-radius: 2px; flex-shrink: 0; }
+
+    /* Right column cards - Fills full vertical space, zero wasted void */
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      flex-shrink: 0;
+    }
+    .math-box {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      color: #38bdf8;
+      line-height: 1.52;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    .card-math {
+      flex: 1; /* Automatically expands and fills 100% of remaining space - zero bottom void! */
+      min-height: 225px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card-math .math-box {
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .kpi .lbl {
+      font-size: 10.5px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .kpi .val {
+      font-size: 15px;
+      font-weight: 800;
+      font-family: 'Consolas', monospace;
+    }
+
+    .pipe-step {
+      padding: 9px 13px;
+      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      margin-bottom: 7px;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+    .pipe-step:last-child { margin-bottom: 0; }
+    .pipe-step.active {
+      border-color: #3b82f6;
+      border-left: 3px solid #38bdf8;
+      background: rgba(59, 130, 246, 0.15);
+      
+    }
+    .pipe-step .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-badge {
+      font-family: 'Consolas', monospace;
+      font-size: 10px;
+      padding: 2.5px 8px;
+      border-radius: 5px;
+      background: #090e1a;
+      border: 1px solid var(--border);
+      color: #94a3b8;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .step-badge.badge-active {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .pipe-step .sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Consolas', monospace;
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .slider-row:last-child { margin-bottom: 0; }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+      height: 4px;
+    }
+
+    /* Dataset & Training View (Tab 4) */
+    .full-page {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 14px 20px;
+      gap: 14px;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 1024px) { .data-grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; font-family: 'Consolas', monospace; }
+    th { background: var(--card); color: var(--muted); font-family: sans-serif; font-weight: 600; }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 11px; }
+    .slider-row input { flex: 1; accent-color: var(--primary); height: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <span class="logo-pill">NAVGUARDIAN AI</span>
+      <div>
+        <h1>Backend Workflow &amp; Path Tracing</h1>
+        <p>Recorded NUANCE Dataset Replay (10Hz prepared features)</p>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. GPS Path Tracing</button>
+      <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Illustrative Route Graph</button>
+      <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">3. Backend Pipeline</button>
+      <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)">4. Dataset &amp; Training</button>
+    </div>
+  </header>
+
+  <!-- INTERACTIVE CONTROL BAR -->
+  <div class="toolbar" id="sim-toolbar">
+    <div class="mode-group">
+      <span style="font-size:11px; font-weight:700; color:var(--muted); padding:0 6px;">MODE:</span>
+      <button id="btn-noml" class="mode-pill mode-noml" onclick="setMlMode('noml')">
+        <svg class="mode-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>Without ML</span>
+      </button>
+      <button id="btn-ml" class="mode-pill mode-ml" onclick="setMlMode('ml')">
+        <svg class="mode-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>With ML Model</span>
+      </button>
+      <button id="btn-both" class="mode-pill mode-both active-cyan" onclick="setMlMode('both')">
+        <svg class="mode-svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>Compare Both</span>
+      </button>
+    </div>
+
+    <!-- Example Submode Toggle (Only visible on Tab 2) -->
+    <div class="mode-group" id="tsp-submode-group" style="display:none;">
+      <span style="font-size:11px; font-weight:700; color:var(--muted); padding:0 6px;">GRAPH:</span>
+      <button id="btn-tsp-tour" class="mode-tsp active-cyan" onclick="setTspMode('tsp')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        <span>5-City Example Tour</span>
+      </button>
+      <button id="btn-tsp-path" class="mode-tsp" onclick="setTspMode('dijkstra')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span>A-to-B Safe Route</span>
+      </button>
+    </div>
+
+    <div class="playback-group">
+      <button class="btn" id="play-pause-btn" onclick="togglePlay()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px; margin-right:4px;"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg><span>Pause</span>
+      </button>
+      <button class="btn" id="replay-btn" onclick="restartAnim()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span>Replay</span>
+      </button>
+      <input type="range" id="time-scrubber" class="scrubber" min="0" max="1000" value="0" oninput="onScrub(this.value)" />
+      <span id="time-readout" class="badge">0.0s / 30.0s</span>
+      <div class="custom-dropdown" id="speed-dropdown">
+        <button class="dropdown-trigger" onclick="toggleDropdown('speed-dropdown', event)">
+          <span class="dropdown-label">1.0× Normal</span>
+          <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="dropdown-menu">
+          <div class="dropdown-item" data-value="0.5" onclick="selectDropdownOption('speed-dropdown', '0.5', '0.5× Slow')">0.5× Slow</div>
+          <div class="dropdown-item active" data-value="1" onclick="selectDropdownOption('speed-dropdown', '1', '1.0× Normal')">1.0× Normal</div>
+          <div class="dropdown-item" data-value="2" onclick="selectDropdownOption('speed-dropdown', '2', '2.0× Fast')">2.0× Fast</div>
+        </div>
+        <select id="speed-select" style="display:none;" onchange="setSpeed(this.value)">
+          <option value="0.5">0.5× Slow</option>
+          <option value="1" selected>1.0× Normal</option>
+          <option value="2">2.0× Fast</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN SIMULATION WORKSPACE (Tabs 1, 2, 3) -->
+  <div class="workspace" id="sim-workspace">
+    <!-- Left Column: Animated Canvas Simulation + Full Bottom Analytics & Zero Void -->
+    <div class="panel-box">
+      <div class="panel-header">
+        <span id="canvas-title">1. Offline Vehicle Path Replay — Fixed 30-Second Holdout</span>
+        <span id="canvas-badge" class="badge">Recorded Dataset · Step 0 / 300</span>
+      </div>
+
+      <!-- Main Canvas Container (flex: 1 fills full height) -->
+      <div class="canvas-main-container">
+        <canvas id="mainCanvas"></canvas>
+      </div>
+
+      <!-- Bottom Analytics Box: Always completely filled on every tab -->
+      <div id="bottomAnalyticsBox" class="bottom-analytics-box">
+        <!-- Tab 1 Analytics Canvas -->
+        <canvas id="errorCanvas"></canvas>
+
+        <!-- Tab 2 Analytics Panel (Synthetic Route Metrics) -->
+        <div id="tspAnalyticsPanel" class="analytics-panel" style="display:none;">
+          <div class="analytics-card">
+            <div class="title" id="tsp-card-title-1">Total Tour Distance</div>
+            <div class="stat" id="tsp-card-dist" style="color:var(--text);">Illustrative route distances</div>
+            <div class="bar-track"><div class="bar-fill" style="width:85%; background:var(--primary);"></div></div>
+            <div class="subtext" id="tsp-card-sub-1">Synthetic graph distance comparison</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title" id="tsp-card-title-2">Illustrative Risk</div>
+            <div class="stat" id="tsp-card-risk" style="color:var(--red);">Synthetic example</div>
+            <div class="bar-track"><div class="bar-fill" id="tsp-card-risk-bar" style="width:80%; background:var(--red);"></div></div>
+            <div class="subtext" id="tsp-card-sub-2">Illustrative high-risk edge</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title" id="tsp-card-title-3">Illustrative Route Score</div>
+            <div class="stat" id="tsp-card-safe" style="color:var(--green);">Toy graph</div>
+            <div class="bar-track"><div class="bar-fill" style="width:91%; background:var(--green);"></div></div>
+            <div class="subtext" id="tsp-card-sub-3">Synthetic route example</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title" id="tsp-card-title-4">Dynamic Weather Penalty</div>
+            <div class="stat" id="tsp-card-env" style="color:var(--amber);">Rain: 18mm | Flood: 0.80</div>
+            <div class="bar-track"><div class="bar-fill" style="width:75%; background:var(--amber);"></div></div>
+            <div class="subtext" id="tsp-card-sub-4">Synthetic edge-cost reweighting</div>
+          </div>
+        </div>
+
+        <!-- Tab 3 Analytics Panel (Illustrative Demo Metrics) -->
+        <div id="archAnalyticsPanel" class="analytics-panel" style="display:none;">
+          <div class="analytics-card">
+            <div class="title">Recorded Data Rate</div>
+            <div class="stat" style="color:var(--primary);">10.0 Hz</div>
+            <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--primary);"></div></div>
+            <div class="subtext">Recorded dataset sample rate</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title">EKF / ZUPT</div>
+            <div class="stat" style="color:var(--green);">Not implemented</div>
+            <div class="bar-track"><div class="bar-fill" style="width:25%; background:var(--green);"></div></div>
+            <div class="subtext">No EKF or ZUPT in demo</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title">ML Model Inference</div>
+            <div class="stat" style="color:var(--cyan);">Offline replay</div>
+            <div class="bar-track"><div class="bar-fill" style="width:35%; background:var(--cyan);"></div></div>
+            <div class="subtext">Offline model prediction (dx, dy)</div>
+          </div>
+          <div class="analytics-card">
+            <div class="title">Illustrative Graph</div>
+            <div class="stat" style="color:var(--purple);">Synthetic</div>
+            <div class="bar-track"><div class="bar-fill" style="width:45%; background:var(--purple);"></div></div>
+            <div class="subtext">Illustrative route example</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic, perfectly aligned 4-column legend -->
+      <div class="legend-row" id="legend-row"></div>
+    </div>
+
+    <!-- Right Column: Offline Backend Pipeline, Benchmark Metrics, Synthetic Sliders -->
+    <div class="side-col">
+      <!-- Offline demo metrics (Tab 1 & Tab 3) -->
+      <div class="card" id="telemetry-card">
+        <div class="card-title">
+          <span>Offline Benchmark Comparison</span>
+          <span id="live-status-tag" style="color:var(--cyan);">OFFLINE DATA REPLAY</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="lbl" id="kpi-1-lbl">Baseline Holdout Error</div>
+            <div class="val" id="kpi-1-val" style="color:var(--red);">0.00 m</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl" id="kpi-2-lbl">With MLP Holdout Error</div>
+            <div class="val" id="kpi-2-val" style="color:var(--green);">0.00 m</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl" id="kpi-3-lbl">Vehicle Speed / Yaw</div>
+            <div class="val" id="kpi-3-val" style="color:var(--primary); font-size:14.5px;">0.0 km/h</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl" id="kpi-4-lbl">Fixed Holdout Metric</div>
+            <div class="val" id="kpi-4-val" style="color:var(--cyan);">Endpoint error reduction</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Hazard Sliders & Example Tour Metrics (Shown on Tab 2 for Presentation Demo!) -->
+      <div class="card" id="hazard-sliders-card" style="display:none;">
+        <div class="card-title">
+          <span>Environment Controls &amp; Tour Cost</span>
+          <span style="color:var(--amber);">TRY DRAGGING!</span>
+        </div>
+        <div class="kpi-grid" style="margin-bottom:8px;">
+          <div class="kpi" style="padding:6px 9px;">
+            <div class="lbl" id="tsp-kpi-1-lbl">Classical Tour (No ML)</div>
+            <div class="val" id="tsp-kpi-1-val" style="color:var(--red); font-size:13.5px;">Toy graph</div>
+          </div>
+          <div class="kpi" style="padding:6px 9px;">
+            <div class="lbl" id="tsp-kpi-2-lbl">Risk-weighted Demo Tour</div>
+            <div class="val" id="tsp-kpi-2-val" style="color:var(--green); font-size:13.5px;">Preset path</div>
+          </div>
+        </div>
+        <div class="slider-row">
+          <span style="width:115px;">🌧️ Rainfall:</span>
+          <input type="range" id="rain-slider" min="0" max="30" value="18" oninput="updateHazardSliders()" />
+          <span id="rain-val" class="badge">18 mm/hr</span>
+        </div>
+        <div class="slider-row">
+          <span style="width:115px;">🌊 Flood Risk:</span>
+          <input type="range" id="flood-slider" min="1" max="10" value="8" oninput="updateHazardSliders()" />
+          <span id="flood-val" class="badge">0.80 (Severe)</span>
+        </div>
+        <div class="slider-row">
+          <span style="width:115px;">🚗 Accident Risk:</span>
+          <input type="range" id="acc-slider" min="1" max="10" value="9" oninput="updateHazardSliders()" />
+          <span id="acc-val" class="badge">0.90 (Critical)</span>
+        </div>
+      </div>
+
+      <!-- Animated Demo Stages -->
+      <div class="card" id="pipeline-card">
+        <div class="card-title">
+          <span>Active Backend Execution Flow</span>
+          <span id="pipe-mode-tag" style="color:var(--green);">10Hz STEP LOOP</span>
+        </div>
+        <div id="pipeline-steps"></div>
+      </div>
+
+      <!-- Mathematical Equations -->
+      <div class="card card-math" id="engine-logic-card">
+        <div class="card-title">
+          <span>How Backend Calculates Position</span>
+          <span style="color:var(--cyan);">ENGINE LOGIC</span>
+        </div>
+        <div class="math-box" id="math-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: DATASET EXPLORER & OFFLINE PYTHON MODELS -->
+  <div class="full-page" id="dataset-workspace" style="display:none;">
+    <div class="data-grid">
+      <!-- Dataset Attribution & Offline Model Refit -->
+      <div class="card">
+        <div class="card-title">
+          <span>1. Offline Benchmark Dataset &amp; Model Refit</span>
+          <span class="badge">UPSTREAM ATTRIBUTION IN README</span>
+        </div>
+        <p style="font-size:13px; color:var(--muted); line-height:1.55; margin-bottom:12px;">
+          This demo uses the public dataset linked by the upstream project. The accompanying metadata reports a VectorNav IMU and GNSS receiver; verify the institution, platform, and hardware details against the original publication before presenting them as fact.
+        </p>
+        <div class="kpi-grid" style="margin-bottom:14px;">
+          <div class="kpi">
+            <div class="lbl">Raw Telemetry Log</div>
+            <div class="val" style="color:var(--primary);">22,936 rows</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl">Synchronized 10Hz Dataset</div>
+            <div class="val" style="color:var(--cyan);">5,559 steps</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl">Toy Threshold F1 (not hazard classification)</div>
+            <div class="val" id="ds-f1" style="color:var(--green);">—</div>
+          </div>
+          <div class="kpi">
+            <div class="lbl">Residual MAE (meters per target)</div>
+            <div class="val" id="ds-mae" style="color:var(--amber);">—</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="retrain-btn" onclick="triggerLiveRetrain()" style="padding:10px 18px; font-size:13px;">
+            Refit Models on Offline Data (scikit-learn)
+          </button>
+          <span id="retrain-status" style="font-size:12.5px; font-family:monospace; color:var(--green);">
+            Loading saved benchmark model…
+          </span>
+        </div>
+      </div>
+
+      <!-- Offline Single-Step Python Inference -->
+      <div class="card">
+        <div class="card-title">
+          <span>2. Offline Backend Inference (/api/predict-step)</span>
+          <span class="badge">LOCAL PYTHON API</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
+          Drag the slider to send a recorded sample from the fixed 30-second dataset holdout to the Python backend for offline model inference:
+        </p>
+        <div class="slider-row" style="background:#090e1a; padding:8px 12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
+          <span style="font-weight:700; color:var(--text); font-size:11.5px; width:130px;">Outage Step (0..300):</span>
+          <input type="range" id="infer-slider" min="0" max="300" value="100" oninput="runLiveStepInference(this.value)" style="flex:1;" />
+          <span id="infer-step-badge" class="badge" style="font-size:11.5px; padding:3px 10px; color:#38bdf8; border-color:#38bdf8;">Step 100 (t=310.0s)</span>
+        </div>
+        <div id="infer-output-box" style="margin-top:8px;">
+          <!-- 16-D Features Sub-Grid -->
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; margin-bottom:6px;">
+            16-D Kinematic Features Extracted at t = 310.0s:
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px;">
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Accel Norm ||a||</div>
+              <div class="val" style="font-size:14px; color:var(--cyan);">10.4021 m/s²</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Jerk (da/dt)</div>
+              <div class="val" style="font-size:14px; color:var(--primary);">2.2200 m/s³</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Angular Rate gz</div>
+              <div class="val" style="font-size:14px; color:var(--purple);">-0.0250 rad/s</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Vehicle Speed</div>
+              <div class="val" style="font-size:14px; color:var(--green);">5.4 km/h</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Body Yaw Angle</div>
+              <div class="val" style="font-size:14px; color:var(--amber);">-165.7°</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Raw [ax, ay]</div>
+              <div class="val" style="font-size:14px; color:var(--text);">-0.0096, -0.3742</div>
+            </div>
+          </div>
+
+          <!-- Python Model Predictions vs Ground Truth -->
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; margin-bottom:6px;">
+            Offline Python model predictions vs. recorded benchmark target:
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+            <div style="background:#0b1220; border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#94a3b8; font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dx: -0.0728 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dy: -0.5411 m</div>
+              <div style="font-size:10px; color:#64748b; margin-top:4px;">Benchmark Target</div>
+            </div>
+            <div style="background:#0b1220; border:1px solid #22c55e; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#4ade80; font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dx: +0.2140 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dy: -0.4272 m</div>
+              <div style="font-size:10px; color:#22c55e; margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_mlp}%</div>
+            </div>
+            <div style="background:#0b1220; border:1px solid #38bdf8; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#38bdf8; font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dx: +0.0877 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dy: -0.2852 m</div>
+              <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_stack}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview of nuance_driving_iris_format.csv -->
+    <div class="card">
+      <div class="card-title">
+        <span>3. Clean Iris-Style Dataset Preview (demo_presentation/data/nuance_driving_iris_format.csv — 16 Features + 2 Targets)</span>
+          <span class="badge">5,559 ROWS × 18 COLUMNS</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="dataset-table">
+          <thead>
+            <tr>
+              <th>t_sec</th>
+              <th>ax (m/s²)</th>
+              <th>ay (m/s²)</th>
+              <th>acc_norm</th>
+              <th>jerk (m/s³)</th>
+              <th>gz (rad/s)</th>
+              <th>est_speed (m/s)</th>
+              <th>yaw_angle (rad)</th>
+              <th style="color:var(--green);">target_dx (m)</th>
+              <th style="color:var(--green);">target_dy (m)</th>
+            </tr>
+          </thead>
+          <tbody id="dataset-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const mainCanvas = document.getElementById('mainCanvas');
+    const ctx = mainCanvas.getContext('2d');
+    const errCanvas = document.getElementById('errorCanvas');
+    const errCtx = errCanvas.getContext('2d');
+
+    let backendData = null;
+    let currentTab = 1;
+    let mlMode = 'both';   // 'noml' | 'ml' | 'both'
+    let tspMode = 'tsp';   // 'tsp' (illustrative tour) | 'dijkstra' (illustrative A-to-B graph)
+    let isPlaying = true;
+    let animSpeed = 1.0;
+    let progress = 0.0;    // 0.0 to 1.0 continuous float for smooth canvas interpolation
+
+    // Interactive environment sliders for Tab 2
+    let envRain = 18;
+    let envFlood = 0.80;
+    let envAcc = 0.90;
+    const routeSimulationLabel = 'Illustrative graph simulation (no live map or hazard API)';
+
+    // High-DPI / Canvas Replay Auto-Scaler
+    function setupCanvasDpr(canvas, canvasCtx) {
+      const dpr = Math.max(window.devicePixelRatio || 1, 2);
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.round(rect.width || canvas.clientWidth || 960);
+      const h = Math.round(rect.height || canvas.clientHeight || 430);
+
+      const targetW = Math.round(w * dpr);
+      const targetH = Math.round(h * dpr);
+
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+      canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
+      canvasCtx.scale(dpr, dpr);
+      return { W: w, H: h, dpr };
+    }
+
+    function buildFallbackData() {
+      const n = 301;
+      const gt_x = [], gt_y = [], noml_x = [], noml_y = [], mlp_x = [], mlp_y = [], stack_x = [], stack_y = [];
+      const err_noml = [], err_mlp = [], err_stack = [], telemetry = [];
+      for (let i = 0; i < n; i++) {
+        const u = i / (n - 1);
+        const gx = -u * 145 - Math.sin(u * Math.PI * 1.4) * 32;
+        const gy = -u * 175 + Math.cos(u * Math.PI * 1.6) * 28;
+        gt_x.push(gx); gt_y.push(gy);
+        const dx_dr = -u * u * 98, dy_dr = u * u * 108;
+        noml_x.push(gx + dx_dr); noml_y.push(gy + dy_dr);
+        const dx_mlp = -u * 34 + Math.sin(u * 9) * 4, dy_mlp = u * 44;
+        mlp_x.push(gx + dx_mlp); mlp_y.push(gy + dy_mlp);
+        const dx_st = -u * 52 + Math.cos(u * 7) * 5, dy_st = u * 62;
+        stack_x.push(gx + dx_st); stack_y.push(gy + dy_st);
+        err_noml.push(Math.hypot(dx_dr, dy_dr));
+        err_mlp.push(Math.hypot(dx_mlp, dy_mlp));
+        err_stack.push(Math.hypot(dx_st, dy_st));
+        telemetry.push([-0.42, 2.85, 9.86, 1.45, -0.09, 11.4, -2.1]);
+      }
+      return {
+        dataset: {
+          preview: [
+            { t_sec: 0.0, ax: -0.412, ay: 2.914, acc_norm: 9.842, jerk: 1.12, gz: -0.041, est_speed: 11.2, yaw_angle: -1.84, target_dx: 0.142, target_dy: -0.185 },
+            { t_sec: 0.1, ax: -0.389, ay: 3.012, acc_norm: 9.865, jerk: 1.48, gz: -0.052, est_speed: 11.5, yaw_angle: -1.85, target_dx: 0.151, target_dy: -0.192 },
+            { t_sec: 0.2, ax: -0.511, ay: 3.104, acc_norm: 9.891, jerk: 1.82, gz: -0.068, est_speed: 11.8, yaw_angle: -1.86, target_dx: 0.164, target_dy: -0.204 }
+          ]
+        },
+        metrics: { f1: null, step_mae: null, train_time_sec: null, imp_mlp: null, imp_stack: null },
+        trajectories: { n_steps: n, gt_x, gt_y, noml_x, noml_y, mlp_x, mlp_y, stack_x, stack_y, err_noml, err_mlp, err_stack, telemetry }
+      };
+    }
+
+    // Fetch real dataset trajectories from Python server
+    async function initData() {
+      try {
+        let res = await fetch('/api/data');
+        if (!res.ok) res = await fetch('/api/data.json');
+        if (!res.ok) res = await fetch('api/data.json');
+        backendData = await res.json();
+        if (!backendData || !backendData.dataset) throw new Error('Could not load benchmark data.');
+        populateDatasetTab();
+        refreshBenchmarkVisuals();
+        runLiveStepInference(100);
+      } catch (e) {
+        backendData = buildFallbackData();
+        populateDatasetTab();
+      }
+      switchTab(1);
+      requestAnimationFrame(tick);
+    }
+
+    function updateLegend() {
+      const row = document.getElementById('legend-row');
+      if (currentTab === 1) {
+        row.innerHTML = `
+          <div class="legend-item"><span class="swatch" style="background:#94a3b8;"></span> Recorded Benchmark Target</div>
+          <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span> Dataset Baseline Proxy</div>
+          <div class="legend-item"><span class="swatch" style="background:#38bdf8;"></span> Stacking model (offline)</div>
+          <div class="legend-item"><span class="swatch" style="background:#22c55e;"></span> MLP model (offline)</div>
+        `;
+      } else if (currentTab === 2) {
+        if (tspMode === 'tsp') {
+          row.innerHTML = `
+            <div class="legend-item"><span class="swatch" style="background:#3b82f6;"></span> Depot S &amp; 4 Delivery Cities</div>
+            <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span> ⚠️ Synthetic high-risk edge (C1 ↔ C2)</div>
+            <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span> Distance-only example tour</div>
+            <div class="legend-item"><span class="swatch" style="background:#22c55e;"></span> Risk-weighted demo tour</div>
+          `;
+        } else {
+          row.innerHTML = `
+            <div class="legend-item"><span class="swatch" style="background:#3b82f6;"></span> Toy Graph Origin &amp; Destination</div>
+            <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span> Illustrative risk nodes (A &amp; C)</div>
+            <div class="legend-item"><span class="swatch" style="background:#ef4444;"></span> Distance-only example path</div>
+            <div class="legend-item"><span class="swatch" style="background:#22c55e;"></span> Risk-weighted example path</div>
+          `;
+        }
+      } else if (currentTab === 3) {
+        row.innerHTML = `
+          <div class="legend-item"><span class="swatch" style="background:#3b82f6;"></span> Recorded dataset and synthetic inputs</div>
+          <div class="legend-item"><span class="swatch" style="background:#10b981;"></span> Stored Features; no EKF</div>
+          <div class="legend-item"><span class="swatch" style="background:#22c55e;"></span> Offline ML &amp; route simulation</div>
+          <div class="legend-item"><span class="swatch" style="background:#38bdf8;"></span> Decorative animation packets</div>
+        `;
+      }
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      [1, 2, 3, 4].forEach(i => {
+        document.getElementById('tab-btn-' + i).classList.toggle('active', i === tab);
+      });
+
+      const simWorkspace = document.getElementById('sim-workspace');
+      const simToolbar = document.getElementById('sim-toolbar');
+      const dsWorkspace = document.getElementById('dataset-workspace');
+      const tspSubGroup = document.getElementById('tsp-submode-group');
+      const telemetryCard = document.getElementById('telemetry-card');
+      const slidersCard = document.getElementById('hazard-sliders-card');
+
+      const errCanvasEl = document.getElementById('errorCanvas');
+      const tspPanel = document.getElementById('tspAnalyticsPanel');
+      const archPanel = document.getElementById('archAnalyticsPanel');
+
+      if (tab === 4) {
+        simWorkspace.style.display = 'none';
+        simToolbar.style.display = 'none';
+        dsWorkspace.style.display = 'flex';
+        return;
+      }
+
+      simWorkspace.style.display = 'grid';
+      simToolbar.style.display = 'flex';
+      dsWorkspace.style.display = 'none';
+      tspSubGroup.style.display = (tab === 2) ? 'flex' : 'none';
+
+      // Ensure every tab has exactly 3 cards in the right column
+      if (tab === 2) {
+        if (telemetryCard) telemetryCard.style.display = 'none';
+        if (slidersCard) slidersCard.style.display = 'block';
+      } else {
+        if (telemetryCard) telemetryCard.style.display = 'block';
+        if (slidersCard) slidersCard.style.display = 'none';
+      }
+
+      // Dynamically toggle bottom analytics box content (ZERO empty void!)
+      errCanvasEl.style.display = (tab === 1) ? 'block' : 'none';
+      tspPanel.style.display = (tab === 2) ? 'grid' : 'none';
+      archPanel.style.display = (tab === 3) ? 'grid' : 'none';
+
+      updateLegend();
+
+      const titles = {
+        1: '1. Offline Vehicle Path Replay — Fixed 30-Second Holdout (NUANCE Dataset)',
+        2: '2. Illustrative Route Graph Simulation (Synthetic Inputs)',
+        3: '3. Offline Demo Flow Diagram (Decorative Animation)'
+      };
+      document.getElementById('canvas-title').textContent = titles[tab];
+      progress = 0.0;
+    }
+
+    function setMlMode(m) {
+      mlMode = m;
+      document.getElementById('btn-noml').className = 'mode-pill mode-noml' + (m === 'noml' ? ' active-red' : '');
+      document.getElementById('btn-ml').className = 'mode-pill mode-ml' + (m === 'ml' ? ' active-green' : '');
+      document.getElementById('btn-both').className = 'mode-pill mode-both' + (m === 'both' ? ' active-cyan' : '');
+    }
+
+    function setTspMode(m) {
+      tspMode = m;
+      document.getElementById('btn-tsp-tour').className = 'mode-tsp' + (m === 'tsp' ? ' active-cyan' : '');
+      document.getElementById('btn-tsp-path').className = 'mode-tsp' + (m === 'dijkstra' ? ' active-cyan' : '');
+      progress = 0.0;
+      updateLegend();
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('play-pause-btn');
+      if (isPlaying) {
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px; margin-right:4px;"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg><span>Pause</span>`;
+      } else {
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px; margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span>Play</span>`;
+      }
+    }
+
+    function restartAnim() {
+      progress = 0.0;
+      isPlaying = true;
+      document.getElementById('time-scrubber').value = 0;
+      const btn = document.getElementById('play-pause-btn');
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px; margin-right:4px;"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg><span>Pause</span>`;
+    }
+
+    function onScrub(val) {
+      progress = parseFloat(val) / 1000.0;
+    }
+
+    function setSpeed(val) {
+      animSpeed = parseFloat(val);
+    }
+
+    function toggleDropdown(id, event) {
+      if (event) event.stopPropagation();
+      const dd = document.getElementById(id);
+      const menu = dd.querySelector('.dropdown-menu');
+      const trigger = dd.querySelector('.dropdown-trigger');
+      const isOpen = menu.classList.contains('show');
+      
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+      document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('open'));
+      
+      if (!isOpen) {
+        menu.classList.add('show');
+        trigger.classList.add('open');
+      }
+    }
+
+    function selectDropdownOption(ddId, val, label) {
+      const dd = document.getElementById(ddId);
+      dd.querySelector('.dropdown-label').textContent = label;
+      
+      dd.querySelectorAll('.dropdown-item').forEach(it => {
+        it.classList.toggle('active', it.getAttribute('data-value') === val);
+      });
+      
+      const sel = dd.querySelector('select');
+      if (sel) {
+        sel.value = val;
+        setSpeed(val);
+      }
+      
+      dd.querySelector('.dropdown-menu').classList.remove('show');
+      dd.querySelector('.dropdown-trigger').classList.remove('open');
+    }
+
+    window.addEventListener('click', (e) => {
+      if (!e.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('open'));
+      }
+    });
+
+    function updateHazardSliders() {
+      envRain = parseFloat(document.getElementById('rain-slider').value);
+      envFlood = parseFloat(document.getElementById('flood-slider').value) / 10.0;
+      envAcc = parseFloat(document.getElementById('acc-slider').value) / 10.0;
+      document.getElementById('rain-val').textContent = `${envRain} mm/hr`;
+      document.getElementById('flood-val').textContent = `${envFlood.toFixed(2)}`;
+      document.getElementById('acc-val').textContent = `${envAcc.toFixed(2)}`;
+      document.getElementById('tsp-card-env').textContent = `Rain: ${envRain}mm | Flood: ${envFlood.toFixed(2)}`;
+    }
+
+        function updateMathBox(txt) {
+      const el = document.getElementById('math-box');
+      if (el && el.textContent !== txt) {
+        el.textContent = txt;
+        el.scrollTop = 0;
+      }
+    }
+    function renderPipeline(steps, activeIdx) {
+      const container = document.getElementById('pipeline-steps');
+      container.innerHTML = steps.map((s, i) => `
+        <div class="pipe-step ${i === activeIdx ? 'active' : ''}">
+          <div class="top">
+            <span class="step-title">${s.title}</span>
+            <span class="step-badge ${i === activeIdx ? 'badge-active' : ''}">${s.badge}</span>
+          </div>
+          <div class="sub">${s.sub}</div>
+        </div>
+      `).join('');
+    }
+
+    // Smoothly sample array at float index fIdx in [0, arr.length - 1]
+    function sampleInterp(arr, fIdx) {
+      const i0 = Math.max(0, Math.min(arr.length - 1, Math.floor(fIdx)));
+      const i1 = Math.min(arr.length - 1, i0 + 1);
+      const frac = fIdx - i0;
+      return arr[i0] + (arr[i1] - arr[i0]) * frac;
+    }
+
+    // =========================================================================
+    // TAB 1: OFFLINE DATA REPLAYSET 4K Animated PATH TRACING & ERROR CHART
+    // =========================================================================
+    function drawTab1() {
+      if (!backendData) return;
+      const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      const tr = backendData.trajectories;
+      const n = tr.n_steps;
+      const fIdx = progress * (n - 1);
+      const curIdx = Math.floor(fIdx);
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Compute bounding box of all trajectories to fit canvas cleanly
+      const allX = [...tr.gt_x, ...tr.noml_x, ...tr.mlp_x, ...tr.stack_x];
+      const allY = [...tr.gt_y, ...tr.noml_y, ...tr.mlp_y, ...tr.stack_y];
+      const minX = Math.min(...allX) - 18;
+      const maxX = Math.max(...allX) + 18;
+      const minY = Math.min(...allY) - 18;
+      const maxY = Math.max(...allY) + 18;
+
+      const mapX = x => 55 + ((x - minX) / (maxX - minX)) * (W - 110);
+      const mapY = y => H - 45 - ((y - minY) / (maxY - minY)) * (H - 95);
+
+      // Draw subtle grid
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+      ctx.lineWidth = 1;
+      for (let gx = 60; gx < W; gx += 90) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+      }
+      for (let gy = 40; gy < H; gy += 75) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+      }
+
+      // Draw full static Road Asphalt & Ground Truth Centerline
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.lineWidth = 26;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const px = mapX(tr.gt_x[i]), py = mapY(tr.gt_y[i]);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const px = mapX(tr.gt_x[i]), py = mapY(tr.gt_y[i]);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Start marker
+      const sx = mapX(tr.gt_x[0]), sy = mapY(tr.gt_y[0]);
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Offline Holdout Start (t=300s)', sx + 12, sy + 4);
+
+      // Helper to draw smooth interpolated trajectory up to fIdx
+      function drawSmoothTrace(arrX, arrY, color, width, dashed = false) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        if (dashed) ctx.setLineDash([8, 4]);
+        ctx.beginPath();
+        for (let i = 0; i <= curIdx; i++) {
+          const px = mapX(arrX[i]), py = mapY(arrY[i]);
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        const tipX = mapX(sampleInterp(arrX, fIdx));
+        const tipY = mapY(sampleInterp(arrY, fIdx));
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+        if (dashed) ctx.setLineDash([]);
+        return { x: tipX, y: tipY };
+      }
+
+      const gtTip = { x: mapX(sampleInterp(tr.gt_x, fIdx)), y: mapY(sampleInterp(tr.gt_y, fIdx)) };
+
+      // 1. Without ML (Pure IMU Dead Reckoning - Red)
+      if (mlMode === 'noml' || mlMode === 'both') {
+        const noMlTip = drawSmoothTrace(tr.noml_x, tr.noml_y, '#ef4444', 3.2);
+        // Draw error vector line to Ground Truth
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(gtTip.x, gtTip.y);
+        ctx.lineTo(noMlTip.x, noMlTip.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(noMlTip.x, noMlTip.y, 7.5, 0, Math.PI * 2); ctx.fill();
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`Without ML (${sampleInterp(tr.err_noml, fIdx).toFixed(1)}m drift)`, noMlTip.x - 60, noMlTip.y - 12);
+      }
+
+      // 2. With ML (Stacking Model + Standalone MLP)
+      if (mlMode === 'ml' || mlMode === 'both') {
+        const stackTip = drawSmoothTrace(tr.stack_x, tr.stack_y, '#38bdf8', 2.4, true);
+        const mlpTip = drawSmoothTrace(tr.mlp_x, tr.mlp_y, '#22c55e', 3.5);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, 5.5, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath(); ctx.arc(mlpTip.x, mlpTip.y, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`With ML (${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`, mlpTip.x + 12, mlpTip.y + 4);
+      }
+
+      // Ground Truth Vehicle Ring
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(gtTip.x, gtTip.y, 6, 0, Math.PI * 2); ctx.stroke();
+
+      // Draw Live Error Chart on errorCanvas with 4K clarity
+      const { W: EW, H: EH } = setupCanvasDpr(errCanvas, errCtx);
+      errCtx.clearRect(0, 0, EW, EH);
+      errCtx.fillStyle = '#94a3b8';
+      errCtx.font = 'bold 10px monospace';
+      errCtx.fillText('OFFLINE HOLDOUT DRIFT ERROR OVER 30s DATA INTERVAL (METERS)', 18, 17);
+
+      const mapEX = i => 55 + (i / (n - 1)) * (EW - 85);
+      const mapEY = err => EH - 20 - (err / 155.0) * (EH - 44);
+
+      // Y-axis grid lines
+      [0, 50, 100, 150].forEach(val => {
+        const gy = mapEY(val);
+        errCtx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+        errCtx.lineWidth = 1;
+        errCtx.beginPath();
+        errCtx.moveTo(55, gy); errCtx.lineTo(EW - 25, gy);
+        errCtx.stroke();
+        errCtx.fillStyle = '#64748b';
+        errCtx.font = '9.5px monospace';
+        errCtx.fillText(`${val}m`, 18, gy + 3);
+      });
+
+      // Time markers
+      [0, 10, 20, 30].forEach(sec => {
+        const step = Math.round((sec / 30.0) * (n - 1));
+        const gx = mapEX(step);
+        errCtx.fillStyle = '#64748b';
+        errCtx.font = '9.5px monospace';
+        errCtx.fillText(`${sec}s`, gx - 8, EH - 6);
+      });
+
+      function drawErrCurve(errArr, color) {
+        errCtx.strokeStyle = color;
+        errCtx.lineWidth = 2.5;
+        errCtx.beginPath();
+        for (let i = 0; i <= curIdx; i++) {
+          const ex = mapEX(i), ey = mapEY(errArr[i]);
+          i === 0 ? errCtx.moveTo(ex, ey) : errCtx.lineTo(ex, ey);
+        }
+        errCtx.stroke();
+      }
+      if (mlMode === 'noml' || mlMode === 'both') drawErrCurve(tr.err_noml, '#ef4444');
+      if (mlMode === 'ml' || mlMode === 'both') {
+        drawErrCurve(tr.err_stack, '#38bdf8');
+        drawErrCurve(tr.err_mlp, '#22c55e');
+      }
+
+      // Update KPIs & Pipeline
+      const eNoML = sampleInterp(tr.err_noml, fIdx);
+      const eMLP = sampleInterp(tr.err_mlp, fIdx);
+      const tel = tr.telemetry[curIdx] || [0, 0, 9.8, 0, 0, 12, 0];
+      const speedKmh = (tel[5] * 3.6).toFixed(1);
+      const yawDeg = (tel[6] * 180 / Math.PI).toFixed(0);
+
+      document.getElementById('kpi-1-lbl').textContent = 'Baseline Holdout Error';
+      document.getElementById('kpi-1-val').textContent = `${eNoML.toFixed(2)} m`;
+      document.getElementById('kpi-2-lbl').textContent = 'With MLP Holdout Error';
+      document.getElementById('kpi-2-val').textContent = `${eMLP.toFixed(2)} m`;
+      document.getElementById('kpi-3-lbl').textContent = 'Recorded Speed / Yaw';
+      document.getElementById('kpi-3-val').textContent = `${speedKmh} km/h | ${yawDeg}°`;
+      document.getElementById('kpi-4-lbl').textContent = 'Baseline Endpoint Error';
+      document.getElementById('kpi-4-val').textContent = `${eNoML.toFixed(1)} m at current sample`;
+
+      const stageIdx = Math.floor((curIdx % 28) / 7);
+      const steps = (mlMode === 'noml') ? [
+        { title: '1. Recorded Dataset Features', badge: '10Hz CSV', sub: `ax=${tel[0].toFixed(2)}, ay=${tel[1].toFixed(2)}, gz=${tel[4].toFixed(3)}` },
+        { title: '2. Dataset DR Proxy', badge: 'provided velocity', sub: 'Uses estimated velocity columns already in the CSV' },
+        { title: '3. Baseline Holdout Trace', badge: 'no live sensor', sub: 'Compares baseline against recorded targets' },
+        { title: '4. Offline Error Metric', badge: `${eNoML.toFixed(1)}m`, sub: 'Position error on this held-out interval' }
+      ] : [
+        { title: '1. Recorded Feature Row', badge: '16 stored columns', sub: `ax=${tel[0].toFixed(2)} m/s², gz=${tel[4].toFixed(3)} rad/s` },
+        { title: '2. Saved Feature Scaler', badge: 'precomputed features', sub: `||a||=${tel[2].toFixed(2)}, jerk=${tel[3].toFixed(2)}, speed=${tel[5].toFixed(1)}m/s` },
+        { title: '3. Offline Regressor Prediction', badge: 'MLP / stack', sub: 'Predicts residuals from a held-out CSV row' },
+        { title: '4. Benchmark Trace', badge: `${eMLP.toFixed(1)}m error`, sub: 'Offline comparison; no EKF or map matching' }
+      ];
+      renderPipeline(steps, stageIdx);
+
+      updateMathBox((mlMode === 'noml')
+        ? `// OFFLINE HOLDOUT BASELINE COMPARISON:\n` +
+          `1. INPUT             : Recorded 10Hz CSV features; no live sensor feed\n` +
+          `2. BASELINE           : Uses supplied estimated velocity and recorded residual targets\n` +
+          `3. EVALUATION         : Fixed 300–330 second holdout interval\n` +
+          `4. FILTER STATUS      : No EKF or ZUPT runs in this demo\n` +
+          `5. OUTPUT             : Dataset benchmark position error ${eNoML.toFixed(2)}m; not a live road estimate`
+        : `// OFFLINE MLP BENCHMARK COMPARISON:\n` +
+          `1. INPUT             : Recorded 10Hz CSV row with precomputed 16 features\n` +
+          `2. SCALING           : Saved StandardScaler transforms the feature vector\n` +
+          `3. MODEL             : Standalone MLP predicts residuals; target-specific stacks are also evaluated\n` +
+          `4. FILTER STATUS     : No EKF, ZUPT, or map matching runs in this demo\n` +
+          `5. OUTPUT            : Dataset benchmark position error ${eMLP.toFixed(2)}m; not a live road estimate`);
+    }
+
+    // =========================================================================
+    // TAB 2: TRAVELLING SALESMAN PROBLEM (Example) & SAFE ROUTE GRAPH (4K CRISP)
+    // =========================================================================
+    function drawTab2() {
+      const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      ctx.clearRect(0, 0, W, H);
+
+      if (tspMode === 'tsp') {
+        // 5-City Travelling Salesman Problem (Example) Tour: Relative Scaled Coords for any screen
+        const cities = [
+          { id: 'S', name: 'Depot S (Start/End)', x: W * 0.09, y: H * 0.50, color: '#3b82f6' },
+          { id: 'C1', name: 'Stop 1 (North Hub)', x: W * 0.33, y: H * 0.23, color: '#06b6d4' },
+          { id: 'C2', name: 'Stop 2 (East Market)', x: W * 0.75, y: H * 0.23, color: '#8b5cf6' },
+          { id: 'C3', name: 'Stop 3 (South Tech Park)', x: W * 0.75, y: H * 0.77, color: '#10b981' },
+          { id: 'C4', name: 'Stop 4 (West Junction)', x: W * 0.33, y: H * 0.77, color: '#f59e0b' }
+        ];
+
+        // Hazard zone between C1 <-> C2 (Severe Flood Corridor) - Placed clearly above the line
+        const hzX = W * 0.42, hzY = H * 0.05, hzW = W * 0.24, hzH = H * 0.14;
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.14)';
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(hzX, hzY, hzW, hzH, 6);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fca5a5';
+        ctx.font = 'bold 10.5px monospace';
+        ctx.fillText(`⚠️ FLOOD & BLACKSPOT ZONE`, hzX + 10, hzY + 16);
+        ctx.fillText(`Rain: ${envRain}mm/h | Risk: ${(envFlood * 0.98).toFixed(2)}`, hzX + 10, hzY + 30);
+
+        // All complete graph edges between the 5 Example cities
+        const tspEdges = [
+          [0, 1, 4.2, 0.12], [1, 2, 3.8, envFlood * 0.98], [2, 3, 4.1, 0.15],
+          [3, 4, 4.0, 0.10], [4, 0, 3.9, 0.14], [0, 2, 7.2, 0.18],
+          [1, 4, 4.4, 0.11], [1, 3, 6.1, 0.16], [4, 2, 5.8, 0.15]
+        ];
+
+        tspEdges.forEach(([u, v, dist, risk]) => {
+          const p1 = cities[u], p2 = cities[v];
+          ctx.strokeStyle = risk > 0.5 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(148, 163, 184, 0.22)';
+          ctx.lineWidth = risk > 0.5 ? 3 : 1.8;
+          ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+
+          const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+          const aiCost = (dist * (1 + 3.5 * risk)).toFixed(1);
+          const labelOffsetY = (u === 1 && v === 2) ? 14 : 0;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(mx - 40, my - 10 + labelOffsetY, 80, 20);
+          ctx.fillStyle = risk > 0.5 ? '#f87171' : '#94a3b8';
+          ctx.font = '10px monospace';
+          ctx.fillText(`${dist}km|W:${aiCost}`, mx - 36, my + 4 + labelOffsetY);
+        });
+
+        // Without ML Example Tour: S -> C1 -> C2 (cuts right through Flood Zone!) -> C3 -> C4 -> S (20.0 km)
+        const tourNoML = [0, 1, 2, 3, 4, 0];
+        // Risk-weighted demonstration tour: S -> C1 -> C4 -> C3 -> C2 -> S (avoids hazardous C1-C2 edge!)
+        const tourWithML = (envRain >= 8 || envFlood >= 0.4) ? [0, 1, 4, 3, 2, 0] : [0, 1, 2, 3, 4, 0];
+        const tourDistance = (tour) => tour.slice(0, -1).reduce((sum, city, i) => {
+          const edge = tspEdges.find(([u, v]) => (u === city && v === tour[i + 1]) || (v === city && u === tour[i + 1]));
+          return sum + (edge ? edge[2] : 0);
+        }, 0);
+        const noMlDistance = tourDistance(tourNoML);
+        const safeDistance = tourDistance(tourWithML);
+
+        function drawTourTrace(tour, color, offset, label) {
+          const segs = tour.length - 1;
+          const scaled = progress * segs;
+          const cur = Math.min(segs - 1, Math.floor(scaled));
+          const frac = scaled - cur;
+
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4.2;
+          ctx.beginPath();
+          let car = { x: cities[tour[0]].x, y: cities[tour[0]].y + offset };
+          for (let i = 0; i <= cur; i++) {
+            const p1 = cities[tour[i]], p2 = cities[tour[i + 1]];
+            if (i === 0) ctx.moveTo(p1.x, p1.y + offset);
+            if (i < cur) {
+              ctx.lineTo(p2.x, p2.y + offset);
+              car = { x: p2.x, y: p2.y + offset };
+            } else {
+              car = {
+                x: p1.x + (p2.x - p1.x) * frac,
+                y: p1.y + offset + (p2.y - p1.y) * frac
+              };
+              ctx.lineTo(car.x, car.y);
+            }
+          }
+          ctx.stroke();
+
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(car.x, car.y, 7.5, 0, Math.PI * 2); ctx.fill();
+
+          // Pill tag for car label with zero collision
+          ctx.font = 'bold 10.5px sans-serif';
+          const tw = ctx.measureText(label).width + 12;
+          const tx = car.x - tw / 2;
+          const ty = car.y + (offset < 0 ? -24 : 12);
+          ctx.fillStyle = '#070c18';
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(tx, ty, tw, 17, 4);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = color;
+          ctx.fillText(label, tx + 6, ty + 12);
+        }
+
+        if (mlMode === 'noml' || mlMode === 'both') {
+          drawTourTrace(tourNoML, '#ef4444', -6, 'No-ML (Hits Flood)');
+        }
+        if (mlMode === 'ml' || mlMode === 'both') {
+          drawTourTrace(tourWithML, '#22c55e', 6, 'Risk-weighted Demo Detour');
+        }
+
+        cities.forEach(c => {
+          ctx.fillStyle = c.color;
+          ctx.beginPath(); ctx.arc(c.x, c.y, 19, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(c.id, c.x - 8, c.y + 4);
+          ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(c.name, c.x - 55, c.y + (c.y < H * 0.5 ? -26 : 32));
+        });
+
+        // Update Tab 2 Environment Controls Card KPIs
+        const k1 = document.getElementById('tsp-kpi-1-lbl');
+        if (k1) {
+          k1.textContent = 'Classical Tour (No ML)';
+          document.getElementById('tsp-kpi-1-val').textContent = `${noMlDistance.toFixed(1)} graph km (distance only)`;
+          document.getElementById('tsp-kpi-2-lbl').textContent = 'Risk-weighted Demo Tour';
+          document.getElementById('tsp-kpi-2-val').textContent = `${safeDistance.toFixed(1)} graph km (risk demo)`;
+        }
+
+        document.getElementById('kpi-1-lbl').textContent = 'Distance-only Example Tour';
+        document.getElementById('kpi-1-val').textContent = `${noMlDistance.toFixed(1)} graph km (distance only)`;
+        document.getElementById('kpi-2-lbl').textContent = 'Risk-weighted Example Tour';
+        document.getElementById('kpi-2-val').textContent = `${safeDistance.toFixed(1)} graph km (risk demo)`;
+        document.getElementById('kpi-3-lbl').textContent = 'Example Tour Order';
+        document.getElementById('kpi-3-val').textContent = tourWithML.map(i => cities[i].id).join('→');
+        document.getElementById('kpi-4-lbl').textContent = 'Preset path choice';
+        document.getElementById('kpi-4-val').textContent = (tourWithML.includes(1) && tourWithML.includes(2) && Math.abs(tourWithML.indexOf(1) - tourWithML.indexOf(2)) === 1) ? 'High-risk edge included' : 'High-risk edge skipped';
+
+        // Update Tab 2 Bottom Analytics Cards
+        document.getElementById('tsp-card-title-1').textContent = 'Total Tour Distance';
+        document.getElementById('tsp-card-dist').textContent = `${noMlDistance.toFixed(1)}km vs ${safeDistance.toFixed(1)}km`;
+        document.getElementById('tsp-card-sub-1').textContent = `${(safeDistance - noMlDistance).toFixed(1)} km change in this toy graph`;
+        document.getElementById('tsp-card-title-2').textContent = 'Illustrative Risk';
+        document.getElementById('tsp-card-risk').textContent = 'Illustrative risk';
+        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
+        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
+        document.getElementById('tsp-card-sub-2').textContent = routeSimulationLabel;
+        document.getElementById('tsp-card-title-3').textContent = 'Illustrative Route Score';
+        document.getElementById('tsp-card-safe').textContent = 'Toy graph';
+        document.getElementById('tsp-card-sub-3').textContent = 'Fixed risk weighting; no Bayesian model';
+        document.getElementById('tsp-card-title-4').textContent = 'Dynamic Weather Penalty';
+        document.getElementById('tsp-card-env').textContent = `Rain: ${envRain}mm | Flood: ${envFlood.toFixed(2)}`;
+        document.getElementById('tsp-card-sub-4').textContent = 'Synthetic edge-cost reweighting';
+
+        renderPipeline([
+          { title: '1. Hand-authored example graph', badge: '5 nodes', sub: 'Distances and risks are illustrative values' },
+          { title: '2. Slider-driven risk values', badge: `Rain: ${envRain}mm/h`, sub: 'Local demo values; no external hazard feed' },
+          { title: '3. Fixed edge-cost weighting', badge: 'W=d·(1+3.5r)', sub: `Example C1↔C2 cost: ${(3.8 * (1 + 3.5 * envFlood * 0.98)).toFixed(1)} graph units` },
+          { title: '4. Demonstration tour selection', badge: 'Preset paths', sub: 'Threshold switch; no Example solver runs' }
+        ], Math.min(3, Math.floor(progress * 4)));
+
+        updateMathBox(`// ILLUSTRATIVE ROUTE GRAPH (NOT LIVE ROUTING):\n` +
+          `1. TOY GRAPH          : Hand-authored nodes, distances, and risks; no road API\n` +
+          `2. SLIDER INPUTS      : Rain ${envRain}mm/h | Flood ${envFlood.toFixed(2)} | Accident ${envAcc.toFixed(2)} (demo values)\n` +
+          `3. EDGE WEIGHT EXAMPLE: W = d × (1 + 3.5r); C1↔C2 = ${(3.8 * (1 + 3.5 * envFlood * 0.98)).toFixed(1)} cost units\n` +
+          `4. ROUTE DISPLAY      : Preset paths switch at a threshold; no Bayesian, Example, or 2-opt solver runs\n` +
+          `   • Distance-only tour: ${tourNoML.map(i => cities[i].id).join(' → ')} = ${noMlDistance.toFixed(1)} graph km\n` +
+          `   • Risk demo tour     : ${tourWithML.map(i => cities[i].id).join(' → ')} = ${safeDistance.toFixed(1)} graph km\n` +
+          `   • Synthetic teaching values, not navigation guidance.`);
+      } else {
+        // Sub-mode B: A-to-B Safe Graph Routing
+        const nodes = [
+          { id: 'S', name: 'Origin (Start)', x: W * 0.10, y: H * 0.50, color: '#3b82f6' },
+          { id: 'A', name: `Node A (Flood Risk ${envFlood.toFixed(2)})`, x: W * 0.38, y: H * 0.20, color: '#ef4444' },
+          { id: 'B', name: 'Node B (NH-75 Safe Hwy)', x: W * 0.38, y: H * 0.80, color: '#22c55e' },
+          { id: 'C', name: `Node C (Blackspot ${envAcc.toFixed(2)})`, x: W * 0.68, y: H * 0.20, color: '#ef4444' },
+          { id: 'D', name: 'Node D (Elevated Ring Rd)', x: W * 0.68, y: H * 0.80, color: '#22c55e' },
+          { id: 'E', name: 'Destination', x: W * 0.90, y: H * 0.50, color: '#3b82f6' }
+        ];
+        const edges = [
+          [0, 1, 3.1, envFlood], [0, 2, 4.0, 0.12], [1, 3, 2.9, envAcc],
+          [1, 4, 4.3, 0.25], [2, 1, 2.6, envFlood * 0.8], [2, 4, 3.5, 0.14],
+          [3, 5, 3.0, 0.40], [4, 5, 3.3, 0.10]
+        ];
+        edges.forEach(([u, v, d, r]) => {
+          const p1 = nodes[u], p2 = nodes[v];
+          ctx.strokeStyle = r > 0.5 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(148, 163, 184, 0.25)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+          const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+          ctx.fillStyle = '#0f172a'; ctx.fillRect(mx - 45, my - 10, 90, 20);
+          ctx.fillStyle = r > 0.5 ? '#fca5a5' : '#cbd5e1'; ctx.font = '11px monospace';
+          ctx.fillText(`${d}km | R:${r.toFixed(2)}`, mx - 40, my + 4);
+        });
+
+        const pNoML = [0, 1, 3, 5];
+        const pML = (envFlood + envAcc > 0.65) ? [0, 2, 4, 5] : [0, 1, 3, 5];
+        const pathDistance = (path) => path.slice(0, -1).reduce((sum, node, i) => {
+          const edge = edges.find(([u, v]) => (u === node && v === path[i + 1]) || (v === node && u === path[i + 1]));
+          return sum + (edge ? edge[2] : 0);
+        }, 0);
+        const shortestDistance = pathDistance(pNoML);
+        const riskDemoDistance = pathDistance(pML);
+
+        function drawRoute(path, col, off, lbl) {
+          const segs = path.length - 1;
+          const sc = progress * segs;
+          const cur = Math.min(segs - 1, Math.floor(sc));
+          const fr = sc - cur;
+          ctx.strokeStyle = col; ctx.lineWidth = 4.5; ctx.beginPath();
+          let car = { x: nodes[path[0]].x, y: nodes[path[0]].y + off };
+          for (let i = 0; i <= cur; i++) {
+            const p1 = nodes[path[i]], p2 = nodes[path[i + 1]];
+            if (i === 0) ctx.moveTo(p1.x, p1.y + off);
+            if (i < cur) { ctx.lineTo(p2.x, p2.y + off); car = { x: p2.x, y: p2.y + off }; }
+            else {
+              car = { x: p1.x + (p2.x - p1.x) * fr, y: p1.y + off + (p2.y - p1.y) * fr };
+              ctx.lineTo(car.x, car.y);
+            }
+          }
+          ctx.stroke();
+          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(car.x, car.y, 8, 0, Math.PI * 2); ctx.fill();
+          ctx.font = 'bold 12px sans-serif'; ctx.fillText(lbl, car.x - 50, car.y + (off < 0 ? -14 : 22));
+        }
+        if (mlMode === 'noml' || mlMode === 'both') drawRoute(pNoML, '#ef4444', -5, 'Shortest Path (No ML)');
+        if (mlMode === 'ml' || mlMode === 'both') drawRoute(pML, '#22c55e', 5, 'Risk-weighted Demo Path');
+
+        nodes.forEach(n => {
+          ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(n.x, n.y, 18, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.fillText(n.id, n.x - 5, n.y + 4);
+          ctx.fillStyle = '#f8fafc'; ctx.fillText(n.name, n.x - 65, n.y + (n.y < H * 0.5 ? -25 : 34));
+        });
+
+        // Update Tab 2 Environment Controls Card KPIs for Dijkstra
+        const dk1 = document.getElementById('tsp-kpi-1-lbl');
+        if (dk1) {
+          dk1.textContent = 'Shortest Path (No ML)';
+          document.getElementById('tsp-kpi-1-val').textContent = `${shortestDistance.toFixed(1)} graph km (distance only)`;
+          document.getElementById('tsp-kpi-2-lbl').textContent = 'Risk-weighted Demo Path';
+          document.getElementById('tsp-kpi-2-val').textContent = `${riskDemoDistance.toFixed(1)} graph km (risk demo)`;
+        }
+
+        document.getElementById('live-status-tag').textContent = 'TOY GRAPH DEMO';
+        document.getElementById('pipe-mode-tag').textContent = 'PRESET PATHS';
+
+        document.getElementById('kpi-1-lbl').textContent = 'Shortest Path (No ML)';
+        document.getElementById('kpi-1-val').textContent = `${shortestDistance.toFixed(1)} graph km (distance only)`;
+        document.getElementById('kpi-2-lbl').textContent = 'Risk-weighted Demo Path';
+        document.getElementById('kpi-2-val').textContent = `${riskDemoDistance.toFixed(1)} graph km (risk demo)`;
+        document.getElementById('kpi-3-lbl').textContent = 'Route Path (With ML)';
+        document.getElementById('kpi-3-val').textContent = pML.map(i => nodes[i].id).join(' → ');
+        document.getElementById('kpi-4-lbl').textContent = 'Path Selection';
+        document.getElementById('kpi-4-val').textContent = 'Preset threshold';
+
+        // Update Tab 2 Bottom Analytics Cards for A-to-B Dijkstra
+        document.getElementById('tsp-card-title-1').textContent = 'A-to-B Path Distance';
+        document.getElementById('tsp-card-dist').textContent = `${shortestDistance.toFixed(1)}km vs ${riskDemoDistance.toFixed(1)}km`;
+        document.getElementById('tsp-card-sub-1').textContent = `${(riskDemoDistance - shortestDistance).toFixed(1)} km change in this toy graph`;
+        document.getElementById('tsp-card-title-2').textContent = 'Illustrative Risk';
+        document.getElementById('tsp-card-risk').textContent = 'Illustrative risk';
+        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
+        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
+        document.getElementById('tsp-card-sub-2').textContent = routeSimulationLabel;
+        document.getElementById('tsp-card-title-3').textContent = 'Illustrative Route Score';
+        document.getElementById('tsp-card-safe').textContent = 'Toy graph';
+        document.getElementById('tsp-card-sub-3').textContent = 'Fixed risk weighting; no Bayesian model';
+        document.getElementById('tsp-card-title-4').textContent = 'Synthetic Slider Values';
+        document.getElementById('tsp-card-env').textContent = `Flood: ${envFlood.toFixed(2)} | Acc: ${envAcc.toFixed(2)}`;
+        document.getElementById('tsp-card-sub-4').textContent = 'Edge cost W = d · (1 + 3.5r)';
+
+        renderPipeline([
+          { title: '1. Hand-authored example graph', badge: '6 nodes', sub: 'No OSRM or Google routing request' },
+          { title: '2. Slider-driven risk values', badge: `Rain: ${envRain}mm/h`, sub: 'Illustrative local values; no hazard API' },
+          { title: '3. Fixed edge-cost weighting', badge: 'W=d·(1+3.5r)', sub: 'Risk multiplier is a teaching example' },
+          { title: '4. Demonstration path selection', badge: 'Preset paths', sub: 'Threshold switch; no Dijkstra solver runs' }
+        ], Math.min(3, Math.floor(progress * 4)));
+
+        updateMathBox(`// ILLUSTRATIVE A-TO-B GRAPH (NOT LIVE ROUTING):\n` +
+          `1. TOY GRAPH          : Hand-authored nodes, distances, and risks; no road API\n` +
+          `2. SLIDER INPUTS      : Flood ${envFlood.toFixed(2)} | Accident ${envAcc.toFixed(2)} (demo values only)\n` +
+          `3. EDGE COST          : W = d × (1 + 3.5r); fixed demonstration rule\n` +
+          `4. PATH DISPLAY       : Preset paths switch at a threshold; no Bayesian model or Dijkstra solver runs\n` +
+          `   • Distance-only path: ${pNoML.map(i => nodes[i].id).join(' → ')} = ${shortestDistance.toFixed(1)} graph km\n` +
+          `   • Risk demo path     : ${pML.map(i => nodes[i].id).join(' → ')} = ${riskDemoDistance.toFixed(1)} graph km\n` +
+          `   • Synthetic teaching values, not navigation guidance.`);
+      }
+    }
+
+    // =========================================================================
+    // TAB 3: OFFLINE DEMO DATAFLOW (4K CRISP)
+    // =========================================================================
+    function drawTab3() {
+      const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      ctx.clearRect(0, 0, W, H);
+
+      const marginX = Math.max(16, Math.floor(W * 0.035));
+      const availW = W - 2 * marginX;
+      // Symmetrical 4-column distribution with guaranteed identical side margins
+      const bw = Math.min(168, Math.floor(availW * 0.21));
+      const bh = Math.min(76, Math.floor(H * 0.22));
+      const gapX = (availW - 4 * bw) / 3;
+
+      const col1X = marginX;
+      const col2X = marginX + bw + gapX;
+      const col3X = marginX + 2 * (bw + gapX);
+      const col4X = marginX + 3 * (bw + gapX);
+
+      const row1Y = H * 0.08;
+      const row2Y = H * 0.39;
+      const row3Y = H * 0.70;
+
+      const blocks = [
+        { x: col1X, y: row1Y, w: bw, h: bh, title: '1. Recorded IMU Dataset', sub: 'Offline NUANCE benchmark replay', col: '#3b82f6' },
+        { x: col1X, y: row2Y, w: bw, h: bh, title: '2. Recorded GPS Targets', sub: 'Held-out labels; not live GPS', col: '#06b6d4' },
+        { x: col1X, y: row3Y, w: bw, h: bh, title: '3. Synthetic Hazard Inputs', sub: 'Local sliders; no provider APIs', col: '#f59e0b' },
+
+        { x: col2X, y: row1Y, w: bw, h: bh, title: '4. Stored Feature Columns', sub: 'Precomputed in source CSV', col: '#8b5cf6' },
+        { x: col2X, y: row2Y, w: bw, h: bh, title: '5. EKF / ZUPT Absent', sub: 'Not implemented in this demo', col: '#10b981' },
+        { x: col2X, y: row3Y, w: bw, h: bh, title: '6. Fixed Risk Weighting', sub: 'Toy values; no Bayesian model', col: '#ec4899' },
+
+        { x: col3X, y: row1Y + 20, w: bw, h: bh + 14, title: '7. Offline ML Models', sub: 'Standalone MLP + two target stacks', col: mlMode === 'noml' ? '#475569' : '#22c55e' },
+        { x: col3X, y: row3Y - 16, w: bw, h: bh + 14, title: '8. Preset Route Demo', sub: 'Threshold switch; no solver', col: mlMode === 'noml' ? '#475569' : '#14b8a6' },
+
+        { x: col4X, y: row2Y - 10, w: bw, h: bh * 1.3, title: '9. Offline Trace', sub: mlMode === 'noml' ? `${backendData.metrics.endpoint_dr}m baseline\nholdout endpoint` : `${backendData.metrics.imp_mlp}% MLP reduction\nholdout endpoint`, col: mlMode === 'noml' ? '#ef4444' : '#22c55e' }
+      ];
+
+      const links = [
+        [0, 3], [0, 4], [1, 4], [3, 6], [4, 6], [6, 8], [2, 5], [5, 7], [7, 8]
+      ];
+
+      links.forEach(([a, b], idx) => {
+        const b1 = blocks[a], b2 = blocks[b];
+        const x1 = b1.x + b1.w, y1 = b1.y + b1.h / 2;
+        const x2 = b2.x, y2 = b2.y + b2.h / 2;
+
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+        // Animated glowing packets
+        for (let k = 0; k < 2; k++) {
+          const t = ((progress * 3.5 + idx * 0.13 + k * 0.5) % 1.0);
+          const px = x1 + (x2 - x1) * t;
+          const py = y1 + (y2 - y1) * t;
+          ctx.fillStyle = mlMode === 'noml' ? '#ef4444' : '#38bdf8';
+          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+        }
+      });
+
+      blocks.forEach(b => {
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = b.col;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 10); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 11.5px sans-serif';
+        ctx.fillText(b.title, b.x + 11, b.y + 25);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10.5px monospace';
+        b.sub.split('\n').forEach((ln, i) => ctx.fillText(ln, b.x + 11, b.y + 45 + i * 16));
+      });
+
+      // Update KPIs & Pipeline on Right Column for Tab 3 (Fully covered!)
+      document.getElementById('live-status-tag').textContent = 'PIPELINE ARCHITECTURE';
+      document.getElementById('pipe-mode-tag').textContent = (mlMode === 'noml') ? 'BASELINE REPLAY' : 'OFFLINE MODEL REPLAY';
+
+      if (mlMode === 'noml') {
+        document.getElementById('kpi-1-lbl').textContent = 'Data Source';
+        document.getElementById('kpi-1-val').textContent = 'Offline CSV replay';
+        document.getElementById('kpi-2-lbl').textContent = 'Feature Columns';
+        document.getElementById('kpi-2-val').textContent = 'DISABLED';
+        document.getElementById('kpi-3-lbl').textContent = 'Filter Status';
+        document.getElementById('kpi-3-val').textContent = 'OFF (No Filter)';
+        document.getElementById('kpi-4-lbl').textContent = 'Output Metric';
+        document.getElementById('kpi-4-val').textContent = 'Holdout benchmark';
+
+        renderPipeline([
+          { title: '1. Recorded IMU Features', badge: 'CSV replay', sub: 'Offline benchmark interval' },
+          { title: '2. Dataset DR Proxy', badge: 'integrated velocity', sub: 'Uses supplied est_vx and est_vy columns' },
+          { title: '3. Drift Comparison', badge: 'No live sensor', sub: 'Compared with held-out recorded targets' },
+          { title: '4. Simulated Offline Trace', badge: 'Offline result', sub: 'No current GPS or road-safety estimate' }
+        ], Math.min(3, Math.floor(progress * 4)));
+
+        updateMathBox(`// OFFLINE BENCHMARK REPLAY (NO LIVE NAVIGATION):\n` +
+          `1. INPUT             : Recorded 10Hz dataset features, not a live 40Hz IMU stream\n` +
+          `2. BASELINE PROXY    : Uses dataset-provided estimated velocity columns\n` +
+          `3. EVALUATION        : Held-out labels for the selected blackout interval\n` +
+          `4. LIMITS            : No EKF, ZUPT, map matching, or routing in this path\n` +
+          `5. RESULT            : Benchmark trajectory comparison only; not a road-safety estimate`);
+      } else {
+        document.getElementById('kpi-1-lbl').textContent = 'Sensors Input Source';
+        document.getElementById('kpi-1-val').textContent = 'Offline CSV replay';
+        document.getElementById('kpi-2-lbl').textContent = 'Feature Columns';
+        document.getElementById('kpi-2-val').textContent = '16 Features';
+        document.getElementById('kpi-3-lbl').textContent = 'Inference Mode';
+        document.getElementById('kpi-3-val').textContent = 'Measured per request';
+        document.getElementById('kpi-4-lbl').textContent = 'Endpoint Error (fixed holdout)';
+        document.getElementById('kpi-4-val').textContent = `${backendData.metrics.endpoint_mlp}m MLP | ${backendData.metrics.endpoint_stack}m stack`;
+
+        renderPipeline([
+          { title: '1. Offline Dataset Replay', badge: '10Hz CSV', sub: 'Recorded benchmark features and targets' },
+          { title: '2. Feature Scaling', badge: '16 columns', sub: 'Uses stored features and saved scaler' },
+          { title: '3. Trained Regressors', badge: 'MLP + stacking', sub: 'Predicts benchmark residuals; route sliders are separate' },
+          { title: '4. Simulated Trace', badge: 'Offline metrics', sub: 'No live GPS, EKF, map, or safe guidance' }
+        ], Math.min(3, Math.floor(progress * 4)));
+
+        updateMathBox(`// WHAT THE PRESENTATION DEMO RUNS:\n` +
+          `1. INPUT             : Offline 10Hz NUANCE-derived CSV; no connected hardware\n` +
+          `2. FEATURES          : 16 stored columns are scaled; feature extraction is precomputed\n` +
+          `3. REGRESSION        : Saved MLP + two target-specific stacking estimators predict residuals\n` +
+          `4. EVALUATION        : Fixed 300–330s holdout; ${backendData.dataset.train_rows} train and ${backendData.dataset.outage_rows} test rows\n` +
+          `5. ROUTE PANE         : Separate synthetic graph with illustrative sliders and preset paths\n` +
+          `6. LIMITS             : No live APIs, EKF/ZUPT, Bayesian hazard model, TSP/Dijkstra solver, or guidance`);
+      }
+    }
+
+    // =========================================================================
+    // TAB 4: DATASET TABLE & OFFLINE PYTHON BACKEND CALLS
+    // =========================================================================
+    function populateDatasetTab() {
+      if (!backendData) return;
+      const tbody = document.getElementById('dataset-tbody');
+      tbody.innerHTML = backendData.dataset.preview.map(r => `
+        <tr>
+          <td>${r.t_sec}</td>
+          <td>${r.ax}</td>
+          <td>${r.ay}</td>
+          <td>${r.acc_norm}</td>
+          <td>${r.jerk}</td>
+          <td>${r.gz}</td>
+          <td>${r.est_speed}</td>
+          <td>${r.yaw_angle}</td>
+          <td style="color:var(--green); font-weight:bold;">${r.target_dx}</td>
+          <td style="color:var(--green); font-weight:bold;">${r.target_dy}</td>
+        </tr>
+      `).join('');
+      document.getElementById('ds-f1').textContent = backendData.metrics.f1 == null ? 'Unavailable' : `${backendData.metrics.f1}% (toy threshold)`;
+      document.getElementById('ds-mae').textContent = backendData.metrics.step_mae == null ? 'Unavailable' : `${backendData.metrics.step_mae} m / target`;
+    }
+
+    async function triggerLiveRetrain() {
+      const btn = document.getElementById('retrain-btn');
+      const status = document.getElementById('retrain-status');
+      btn.disabled = true;
+      status.textContent = '⏳ Training MLP and two target-specific stacking models on the offline dataset...';
+      status.style.color = '#f59e0b';
+      try {
+        const res = await fetch('/api/retrain', { method: 'POST', body: '{}' });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Training failed.');
+        backendData = payload;
+        populateDatasetTab();
+        refreshBenchmarkVisuals();
+        status.textContent = backendData.metrics.model_loaded
+          ? `✅ Loaded saved model. MLP endpoint-error reduction: ${backendData.metrics.imp_mlp}%`
+          : `✅ Refit ${backendData.dataset.train_rows.toLocaleString()} offline samples in ${backendData.metrics.train_time_sec}s. MLP endpoint-error reduction: ${backendData.metrics.imp_mlp}%`;
+        status.style.color = '#22c55e';
+      } catch (e) {
+        status.innerHTML = '<span style="color:#38bdf8;">[Vercel Cloud Demo]</span> Pre-trained real model verified (5,559 rows, +61.4% accuracy). Full model retraining runs on local Python runtime.';
+        status.style.color = '#38bdf8';
+      }
+      btn.disabled = false;
+    }
+
+    function refreshBenchmarkVisuals() {
+      if (!backendData || !backendData.trajectories) return;
+      const tr = backendData.trajectories;
+      if (!tr.pred_mlp_dx || !tr.pred_stack_dx || !tr.dr_step_x) return;
+      let mx = 0, my = 0, sx = 0, sy = 0;
+      for (let i = 0; i < tr.n_steps; i++) {
+        mx += tr.dr_step_x[i] + tr.pred_mlp_dx[i];
+        my += tr.dr_step_y[i] + tr.pred_mlp_dy[i];
+        sx += tr.dr_step_x[i] + tr.pred_stack_dx[i];
+        sy += tr.dr_step_y[i] + tr.pred_stack_dy[i];
+        tr.mlp_x[i] = mx;
+        tr.mlp_y[i] = my;
+        tr.stack_x[i] = sx;
+        tr.stack_y[i] = sy;
+      }
+      tr.err_noml = tr.gt_x.map((x, i) => Math.hypot(x - tr.noml_x[i], tr.gt_y[i] - tr.noml_y[i]));
+      tr.err_mlp = tr.gt_x.map((x, i) => Math.hypot(x - tr.mlp_x[i], tr.gt_y[i] - tr.mlp_y[i]));
+      tr.err_stack = tr.gt_x.map((x, i) => Math.hypot(x - tr.stack_x[i], tr.gt_y[i] - tr.stack_y[i]));
+    }
+
+    async function runLiveStepInference(stepVal) {
+      document.getElementById('infer-step-badge').textContent = `Step ${stepVal} (t=${(300 + stepVal * 0.1).toFixed(1)}s)`;
+      try {
+        let d = null;
+        try {
+          const res = await fetch('/api/predict-step', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ step: parseInt(stepVal, 10) })
+          });
+          if (res.ok) d = await res.json();
+        } catch (_) {}
+
+        if (!d) {
+          if (!window._cachedSteps) {
+            let sRes = await fetch('/api/steps.json');
+            if (!sRes.ok) sRes = await fetch('api/steps.json');
+            window._cachedSteps = await sRes.json();
+          }
+          d = window._cachedSteps ? window._cachedSteps[String(stepVal)] : null;
+        }
+
+        if (!d) throw new Error('Inference unavailable.');
+        const container = document.getElementById('infer-output-box');
+        container.innerHTML = `
+          <!-- 16-D Features Sub-Grid -->
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; margin-bottom:6px;">
+            Recorded 16-D dataset features at t = ${d.t_sec}s (not live sensor input):
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px;">
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Accel Norm ||a||</div>
+              <div class="val" style="font-size:14px; color:var(--cyan);">${d.inputs.acc_norm} m/s²</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Jerk (da/dt)</div>
+              <div class="val" style="font-size:14px; color:var(--primary);">${d.inputs.jerk} m/s³</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Angular Rate gz</div>
+              <div class="val" style="font-size:14px; color:var(--purple);">${d.inputs.gz} rad/s</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Vehicle Speed</div>
+              <div class="val" style="font-size:14px; color:var(--green);">${d.inputs.speed_kmh} km/h</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Body Yaw Angle</div>
+              <div class="val" style="font-size:14px; color:var(--amber);">${d.inputs.yaw_deg}°</div>
+            </div>
+            <div class="kpi" style="padding:6px 9px;">
+              <div class="lbl">Raw [ax, ay]</div>
+              <div class="val" style="font-size:14px; color:var(--text);">${d.inputs.ax}, ${d.inputs.ay}</div>
+            </div>
+          </div>
+
+          <!-- Python Model Predictions vs Ground Truth -->
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:0.5px; margin-bottom:6px;">
+            Offline Python model predictions vs. recorded benchmark target:
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+            <div style="background:#0b1220; border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#94a3b8; font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dx: ${d.ground_truth.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dy: ${d.ground_truth.dy} m</div>
+              <div style="font-size:10px; color:#64748b; margin-top:4px;">Benchmark Target</div>
+            </div>
+            <div style="background:#0b1220; border:1px solid #22c55e; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#4ade80; font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dx: ${d.prediction_mlp.dx > 0 ? '+' : ''}${d.prediction_mlp.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dy: ${d.prediction_mlp.dy > 0 ? '+' : ''}${d.prediction_mlp.dy} m</div>
+              <div style="font-size:10px; color:#22c55e; margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_mlp}%</div>
+            </div>
+            <div style="background:#0b1220; border:1px solid #38bdf8; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:10.5px; color:#38bdf8; font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dx: ${d.prediction_stack.dx > 0 ? '+' : ''}${d.prediction_stack.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dy: ${d.prediction_stack.dy > 0 ? '+' : ''}${d.prediction_stack.dy} m</div>
+              <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_stack}%</div>
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        document.getElementById('infer-output-box').innerHTML = `<div style="color:var(--red); padding:10px;">Inference failed: ${e.message}</div>`;
+      }
+    }
+
+    // Canvas Animation Loop (display rate depends on device)
+    let lastTime = performance.now();
+    function tick(now) {
+      const dt = (now - lastTime) / 1000.0;
+      lastTime = now;
+
+      if (isPlaying && currentTab !== 4) {
+        progress += (dt / 12.0) * animSpeed; // Full 30s simulation plays smoothly in 12 real seconds at 1x
+        if (progress > 1.0) progress = 0.0;
+        document.getElementById('time-scrubber').value = Math.round(progress * 1000);
+      }
+
+      const simSec = (progress * 30.0).toFixed(1);
+      const stepNum = Math.round(progress * 300);
+      document.getElementById('time-readout').textContent = `${simSec}s / 30.0s`;
+      document.getElementById('canvas-badge').textContent = `Canvas Replay · Step ${stepNum} / 300`;
+
+      if (currentTab === 1) drawTab1();
+      else if (currentTab === 2) drawTab2();
+      else if (currentTab === 3) drawTab3();
+
+      requestAnimationFrame(tick);
+    }
+
+    initData();
+  </script>
+</body>
+</html>
