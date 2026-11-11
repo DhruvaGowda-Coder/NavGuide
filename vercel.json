@@ -1,13 +1,15 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/", "destination": "/demo_presentation/web/index.html", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/data", "destination": "/demo_presentation/web/api/data.json" },
     { "source": "/api/data.json", "destination": "/demo_presentation/web/api/data.json" },
     { "source": "/api/steps.json", "destination": "/demo_presentation/web/api/steps.json" },
     { "source": "/api/predict-step", "destination": "/demo_presentation/web/api/steps.json" },
     { "source": "/data/(.*)", "destination": "/demo_presentation/web/data/$1" },
-    { "source": "/", "destination": "/demo_presentation/web/index.html" },
     { "source": "/(.*)", "destination": "/demo_presentation/web/$1" }
   ]
 }
