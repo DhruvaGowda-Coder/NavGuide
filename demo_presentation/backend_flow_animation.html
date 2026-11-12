@@ -1827,22 +1827,39 @@
         const mlpTip = drawSmoothTrace(tr.mlp_x, tr.mlp_y, '#22c55e', 3.5);
 
         ctx.fillStyle = '#38bdf8';
-        ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, isMob ? 4 : 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, isMob ? 4.5 : 6, 0, Math.PI * 2); ctx.fill();
+        ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 11.5px sans-serif';
+        const stTxt = isMob
+          ? `Stacking (${sampleInterp(tr.err_stack, fIdx).toFixed(1)}m)`
+          : `Stacking ML (${sampleInterp(tr.err_stack, fIdx).toFixed(1)}m)`;
+        const stw = ctx.measureText(stTxt).width;
+        const stx = (stackTip.x + 10 + stw > W - 6) ? Math.max(6, stackTip.x - stw - 10) : (stackTip.x + 10);
+        const sty = Math.min(H - 8, stackTip.y + (isMob ? 12 : 4));
+        ctx.fillText(stTxt, stx, sty);
 
         ctx.fillStyle = '#22c55e';
         ctx.beginPath(); ctx.arc(mlpTip.x, mlpTip.y, isMob ? 6 : 8, 0, Math.PI * 2); ctx.fill();
         ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
-        const mlTxt = `With ML (${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`;
+        const mlTxt = isMob
+          ? `MLP ML (${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`
+          : `With ML (MLP ${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`;
         const mw = ctx.measureText(mlTxt).width;
         const mx = (mlpTip.x + 10 + mw > W - 6) ? Math.max(6, mlpTip.x - mw - 10) : (mlpTip.x + 10);
-        const my = Math.min(H - 8, mlpTip.y + (isMob ? 14 : 6));
+        const my = Math.min(H - 8, mlpTip.y + (isMob ? 14 : 16));
         ctx.fillText(mlTxt, mx, my);
       }
 
-      // Ground Truth Vehicle Ring
+      // Ground Truth Vehicle Ring + Clear Label
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = isMob ? 2 : 2.5;
       ctx.beginPath(); ctx.arc(gtTip.x, gtTip.y, isMob ? 4.5 : 6, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 11.5px sans-serif';
+      const gtTxt = isMob ? 'Real Car' : 'Real Car (GPS Target)';
+      const gtw = ctx.measureText(gtTxt).width;
+      const gtx = (gtTip.x + 10 + gtw > W - 6) ? Math.max(6, gtTip.x - gtw - 10) : (gtTip.x + 10);
+      const gty = Math.min(H - 8, gtTip.y + (isMob ? 14 : 16));
+      ctx.fillText(gtTxt, gtx, gty);
 
       // Draw Live Error Chart on errorCanvas with 4K clarity
       const { W: EW, H: EH } = setupCanvasDpr(errCanvas, errCtx);
