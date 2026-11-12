@@ -860,7 +860,11 @@
         height: 320px;
       }
       .bottom-analytics-box {
-        height: 195px;
+        height: auto !important;
+        min-height: 185px;
+      }
+      #errorCanvas {
+        height: 185px !important;
       }
       .analytics-panel {
         grid-template-columns: repeat(2, 1fr) !important;
@@ -1589,6 +1593,7 @@
     function drawTab1() {
       if (!backendData) return;
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      const isMob = W < 560;
       const tr = backendData.trajectories;
       const n = tr.n_steps;
       const fIdx = progress * (n - 1);
@@ -1596,7 +1601,7 @@
 
       ctx.clearRect(0, 0, W, H);
 
-      // Compute bounding box of all trajectories to fit canvas cleanly
+      // Compute bounding box of all trajectories to fit canvas cleanly and centered
       const allX = [...tr.gt_x, ...tr.noml_x, ...tr.mlp_x, ...tr.stack_x];
       const allY = [...tr.gt_y, ...tr.noml_y, ...tr.mlp_y, ...tr.stack_y];
       const minX = Math.min(...allX) - 18;
@@ -1604,22 +1609,27 @@
       const minY = Math.min(...allY) - 18;
       const maxY = Math.max(...allY) + 18;
 
-      const mapX = x => 55 + ((x - minX) / (maxX - minX)) * (W - 110);
-      const mapY = y => H - 45 - ((y - minY) / (maxY - minY)) * (H - 95);
+      const padX = isMob ? 36 : 55;
+      const padTop = isMob ? 34 : 50;
+      const padBot = isMob ? 34 : 45;
+      const mapX = x => padX + ((x - minX) / (maxX - minX)) * (W - padX * 2);
+      const mapY = y => H - padBot - ((y - minY) / (maxY - minY)) * (H - padTop - padBot);
 
       // Draw subtle grid
       ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
       ctx.lineWidth = 1;
-      for (let gx = 60; gx < W; gx += 90) {
+      const gridStepX = isMob ? 65 : 90;
+      const gridStepY = isMob ? 55 : 75;
+      for (let gx = padX; gx < W; gx += gridStepX) {
         ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
       }
-      for (let gy = 40; gy < H; gy += 75) {
+      for (let gy = 35; gy < H; gy += gridStepY) {
         ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
       }
 
       // Draw full static Road Asphalt & Ground Truth Centerline
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
-      ctx.lineWidth = 26;
+      ctx.lineWidth = isMob ? 18 : 26;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -1630,7 +1640,7 @@
       ctx.stroke();
 
       ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1.8;
+      ctx.lineWidth = isMob ? 1.4 : 1.8;
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
       for (let i = 0; i < n; i++) {
@@ -1640,18 +1650,24 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Start marker
+      // Start marker (clamped so label never overflows canvas edge)
       const sx = mapX(tr.gt_x[0]), sy = mapY(tr.gt_y[0]);
       ctx.fillStyle = '#3b82f6';
-      ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx, sy, isMob ? 5.5 : 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText('Offline Holdout Start (t=300s)', sx + 12, sy + 4);
+      ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      const startText = isMob ? 'Holdout Start (300s)' : 'Offline Holdout Start (t=300s)';
+      const stW = ctx.measureText(startText).width;
+      const stX = (sx + 10 + stW > W - 8) ? Math.max(6, sx - stW - 10) : (sx + 10);
+      const stY = (sy < 24) ? (sy + 16) : (sy - 8);
+      ctx.fillText(startText, stX, stY);
 
       // Helper to draw smooth interpolated trajectory up to fIdx
       function drawSmoothTrace(arrX, arrY, color, width, dashed = false) {
         ctx.strokeStyle = color;
-        ctx.lineWidth = width;
+        ctx.lineWidth = isMob ? width * 0.82 : width;
         if (dashed) ctx.setLineDash([8, 4]);
         ctx.beginPath();
         for (let i = 0; i <= curIdx; i++) {
@@ -1671,7 +1687,6 @@
       // 1. Without ML (Pure IMU Dead Reckoning - Red)
       if (mlMode === 'noml' || mlMode === 'both') {
         const noMlTip = drawSmoothTrace(tr.noml_x, tr.noml_y, '#ef4444', 3.2);
-        // Draw error vector line to Ground Truth
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1.5;
@@ -1682,9 +1697,15 @@
         ctx.setLineDash([]);
 
         ctx.fillStyle = '#ef4444';
-        ctx.beginPath(); ctx.arc(noMlTip.x, noMlTip.y, 7.5, 0, Math.PI * 2); ctx.fill();
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(`Without ML (${sampleInterp(tr.err_noml, fIdx).toFixed(1)}m drift)`, noMlTip.x - 60, noMlTip.y - 12);
+        ctx.beginPath(); ctx.arc(noMlTip.x, noMlTip.y, isMob ? 5.5 : 7.5, 0, Math.PI * 2); ctx.fill();
+        ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
+        const noMlTxt = isMob
+          ? `No-ML (${sampleInterp(tr.err_noml, fIdx).toFixed(1)}m)`
+          : `Without ML (${sampleInterp(tr.err_noml, fIdx).toFixed(1)}m drift)`;
+        const nw = ctx.measureText(noMlTxt).width;
+        const nx = Math.max(6, Math.min(W - nw - 6, noMlTip.x - nw / 2));
+        const ny = Math.max(14, noMlTip.y - (isMob ? 10 : 12));
+        ctx.fillText(noMlTxt, nx, ny);
       }
 
       // 2. With ML (Stacking Model + Standalone MLP)
@@ -1693,27 +1714,39 @@
         const mlpTip = drawSmoothTrace(tr.mlp_x, tr.mlp_y, '#22c55e', 3.5);
 
         ctx.fillStyle = '#38bdf8';
-        ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, 5.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, isMob ? 4 : 5.5, 0, Math.PI * 2); ctx.fill();
 
         ctx.fillStyle = '#22c55e';
-        ctx.beginPath(); ctx.arc(mlpTip.x, mlpTip.y, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(`With ML (${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`, mlpTip.x + 12, mlpTip.y + 4);
+        ctx.beginPath(); ctx.arc(mlpTip.x, mlpTip.y, isMob ? 6 : 8, 0, Math.PI * 2); ctx.fill();
+        ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
+        const mlTxt = `With ML (${sampleInterp(tr.err_mlp, fIdx).toFixed(1)}m)`;
+        const mw = ctx.measureText(mlTxt).width;
+        const mx = (mlpTip.x + 10 + mw > W - 6) ? Math.max(6, mlpTip.x - mw - 10) : (mlpTip.x + 10);
+        const my = Math.min(H - 8, mlpTip.y + (isMob ? 14 : 6));
+        ctx.fillText(mlTxt, mx, my);
       }
 
       // Ground Truth Vehicle Ring
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(gtTip.x, gtTip.y, 6, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = isMob ? 2 : 2.5;
+      ctx.beginPath(); ctx.arc(gtTip.x, gtTip.y, isMob ? 4.5 : 6, 0, Math.PI * 2); ctx.stroke();
 
       // Draw Live Error Chart on errorCanvas with 4K clarity
       const { W: EW, H: EH } = setupCanvasDpr(errCanvas, errCtx);
+      const isErrMob = EW < 560;
       errCtx.clearRect(0, 0, EW, EH);
       errCtx.fillStyle = '#94a3b8';
-      errCtx.font = 'bold 10px monospace';
-      errCtx.fillText('OFFLINE HOLDOUT DRIFT ERROR OVER 30s DATA INTERVAL (METERS)', 18, 17);
+      errCtx.font = isErrMob ? 'bold 8.5px monospace' : 'bold 10px monospace';
+      errCtx.textAlign = 'left';
+      errCtx.fillText(
+        isErrMob ? 'HOLDOUT DRIFT ERROR OVER 30s (METERS)' : 'OFFLINE HOLDOUT DRIFT ERROR OVER 30s DATA INTERVAL (METERS)',
+        isErrMob ? 12 : 18,
+        16
+      );
 
-      const mapEX = i => 55 + (i / (n - 1)) * (EW - 85);
+      const errLeft = isErrMob ? 42 : 55;
+      const errRight = isErrMob ? 16 : 25;
+      const mapEX = i => errLeft + (i / (n - 1)) * (EW - errLeft - errRight);
       const mapEY = err => EH - 20 - (err / 155.0) * (EH - 44);
 
       // Y-axis grid lines
@@ -1722,11 +1755,11 @@
         errCtx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
         errCtx.lineWidth = 1;
         errCtx.beginPath();
-        errCtx.moveTo(55, gy); errCtx.lineTo(EW - 25, gy);
+        errCtx.moveTo(errLeft, gy); errCtx.lineTo(EW - errRight, gy);
         errCtx.stroke();
         errCtx.fillStyle = '#64748b';
-        errCtx.font = '9.5px monospace';
-        errCtx.fillText(`${val}m`, 18, gy + 3);
+        errCtx.font = isErrMob ? '8.5px monospace' : '9.5px monospace';
+        errCtx.fillText(`${val}m`, isErrMob ? 10 : 18, gy + 3);
       });
 
       // Time markers
@@ -1734,13 +1767,13 @@
         const step = Math.round((sec / 30.0) * (n - 1));
         const gx = mapEX(step);
         errCtx.fillStyle = '#64748b';
-        errCtx.font = '9.5px monospace';
+        errCtx.font = isErrMob ? '8.5px monospace' : '9.5px monospace';
         errCtx.fillText(`${sec}s`, gx - 8, EH - 6);
       });
 
       function drawErrCurve(errArr, color) {
         errCtx.strokeStyle = color;
-        errCtx.lineWidth = 2.5;
+        errCtx.lineWidth = isErrMob ? 2 : 2.5;
         errCtx.beginPath();
         for (let i = 0; i <= curIdx; i++) {
           const ex = mapEX(i), ey = mapEY(errArr[i]);
@@ -1804,32 +1837,75 @@
     // =========================================================================
     function drawTab2() {
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      const isMob = W < 560;
       ctx.clearRect(0, 0, W, H);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
 
       if (tspMode === 'tsp') {
-        // 5-City Travelling Salesman Problem (Example) Tour: Relative Scaled Coords for any screen
+        // Centered 5-City Tour Coordinates: Balanced horizontally (0.16..0.84 -> 0.50 center!)
         const cities = [
-          { id: 'S', name: 'Depot S (Start/End)', x: W * 0.09, y: H * 0.50, color: '#3b82f6' },
-          { id: 'C1', name: 'Stop 1 (North Hub)', x: W * 0.33, y: H * 0.23, color: '#06b6d4' },
-          { id: 'C2', name: 'Stop 2 (East Market)', x: W * 0.75, y: H * 0.23, color: '#8b5cf6' },
-          { id: 'C3', name: 'Stop 3 (South Tech Park)', x: W * 0.75, y: H * 0.77, color: '#10b981' },
-          { id: 'C4', name: 'Stop 4 (West Junction)', x: W * 0.33, y: H * 0.77, color: '#f59e0b' }
+          {
+            id: 'S',
+            name: isMob ? 'Depot S (Start)' : 'Depot S (Start/End)',
+            x: W * (isMob ? 0.16 : 0.14),
+            y: H * (isMob ? 0.55 : 0.52),
+            color: '#3b82f6'
+          },
+          {
+            id: 'C1',
+            name: isMob ? 'Stop 1 (North)' : 'Stop 1 (North Hub)',
+            x: W * (isMob ? 0.44 : 0.41),
+            y: H * (isMob ? 0.31 : 0.25),
+            color: '#06b6d4'
+          },
+          {
+            id: 'C2',
+            name: isMob ? 'Stop 2 (East)' : 'Stop 2 (East Market)',
+            x: W * (isMob ? 0.84 : 0.82),
+            y: H * (isMob ? 0.31 : 0.25),
+            color: '#8b5cf6'
+          },
+          {
+            id: 'C3',
+            name: isMob ? 'Stop 3 (South)' : 'Stop 3 (South Tech Park)',
+            x: W * (isMob ? 0.84 : 0.82),
+            y: H * (isMob ? 0.78 : 0.77),
+            color: '#10b981'
+          },
+          {
+            id: 'C4',
+            name: isMob ? 'Stop 4 (West)' : 'Stop 4 (West Junction)',
+            x: W * (isMob ? 0.44 : 0.41),
+            y: H * (isMob ? 0.78 : 0.77),
+            color: '#f59e0b'
+          }
         ];
 
-        // Hazard zone between C1 <-> C2 (Severe Flood Corridor) - Placed clearly above the line
-        const hzX = W * 0.42, hzY = H * 0.05, hzW = W * 0.24, hzH = H * 0.14;
+        // Hazard zone banner centered between C1 & C2 at top (zero collision with node titles)
+        const hzLine1 = '⚠️ FLOOD & BLACKSPOT ZONE';
+        const hzLine2 = `Rain: ${envRain}mm/h | Risk: ${(envFlood * 0.98).toFixed(2)}`;
+        ctx.font = isMob ? 'bold 8px monospace' : 'bold 10.5px monospace';
+        const hzTextW = Math.max(ctx.measureText(hzLine1).width, ctx.measureText(hzLine2).width);
+        const hzW = hzTextW + (isMob ? 14 : 22);
+        const hzH = isMob ? 25 : 36;
+        const midC12 = (cities[1].x + cities[2].x) / 2;
+        const hzX = Math.max(8, Math.min(W - hzW - 8, midC12 - hzW / 2));
+        const hzY = isMob ? 5 : Math.max(6, H * 0.03);
+
         ctx.fillStyle = 'rgba(239, 68, 68, 0.14)';
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.3;
         ctx.beginPath();
-        ctx.roundRect(hzX, hzY, hzW, hzH, 6);
+        ctx.roundRect(hzX, hzY, hzW, hzH, 5);
         ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#fca5a5';
-        ctx.font = 'bold 10.5px monospace';
-        ctx.fillText(`⚠️ FLOOD & BLACKSPOT ZONE`, hzX + 10, hzY + 16);
-        ctx.fillText(`Rain: ${envRain}mm/h | Risk: ${(envFlood * 0.98).toFixed(2)}`, hzX + 10, hzY + 30);
+        ctx.textAlign = 'center';
+        ctx.fillText(hzLine1, hzX + hzW / 2, hzY + (isMob ? 10 : 15));
+        ctx.fillText(hzLine2, hzX + hzW / 2, hzY + (isMob ? 20 : 29));
+        ctx.textAlign = 'left';
 
-        // All complete graph edges between the 5 Example cities
+        // Complete graph edges between the 5 cities
         const tspEdges = [
           [0, 1, 4.2, 0.12], [1, 2, 3.8, envFlood * 0.98], [2, 3, 4.1, 0.15],
           [3, 4, 4.0, 0.10], [4, 0, 3.9, 0.14], [0, 2, 7.2, 0.18],
@@ -1838,23 +1914,40 @@
 
         tspEdges.forEach(([u, v, dist, risk]) => {
           const p1 = cities[u], p2 = cities[v];
-          ctx.strokeStyle = risk > 0.5 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(148, 163, 184, 0.22)';
-          ctx.lineWidth = risk > 0.5 ? 3 : 1.8;
+          ctx.strokeStyle = risk > 0.5 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(148, 163, 184, 0.20)';
+          ctx.lineWidth = risk > 0.5 ? (isMob ? 2.2 : 3) : (isMob ? 1.3 : 1.8);
           ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
-          const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-          const aiCost = (dist * (1 + 3.5 * risk)).toFixed(1);
-          const labelOffsetY = (u === 1 && v === 2) ? 14 : 0;
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(mx - 40, my - 10 + labelOffsetY, 80, 20);
-          ctx.fillStyle = risk > 0.5 ? '#f87171' : '#94a3b8';
-          ctx.font = '10px monospace';
-          ctx.fillText(`${dist}km|W:${aiCost}`, mx - 36, my + 4 + labelOffsetY);
-        });
+          // On mobile, hide the 2 unused inner cross-diagonals ([1,3] and [4,2]) so center labels never overlap
+          const isUnusedDiag = (u === 1 && v === 3) || (u === 4 && v === 2);
+          if (isMob && isUnusedDiag) return;
 
-        // Without ML Example Tour: S -> C1 -> C2 (cuts right through Flood Zone!) -> C3 -> C4 -> S (20.0 km)
+          // Position along edge to prevent center pile-up
+          let tPos = 0.5;
+          if (u === 0 && v === 2) tPos = isMob ? 0.30 : 0.34;
+          else if (u === 1 && v === 3) tPos = 0.36;
+          else if (u === 4 && v === 2) tPos = 0.64;
+
+          const mx = p1.x + (p2.x - p1.x) * tPos;
+          const my = p1.y + (p2.y - p1.y) * tPos + ((u === 1 && v === 2) ? (isMob ? 11 : 14) : 0);
+
+          const aiCost = (dist * (1 + 3.5 * risk)).toFixed(1);
+          const lblTxt = isMob ? `${dist}k|W:${aiCost}` : `${dist}km|W:${aiCost}`;
+          ctx.font = isMob ? '8px monospace' : '10px monospace';
+          const bw = ctx.measureText(lblTxt).width + (isMob ? 8 : 10);
+          const bh = isMob ? 13 : 18;
+
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.fillRect(mx - bw / 2, my - bh / 2, bw, bh);
+          ctx.fillStyle = risk > 0.5 ? '#f87171' : '#94a3b8';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(lblTxt, mx, my + 0.5);
+        });
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+
         const tourNoML = [0, 1, 2, 3, 4, 0];
-        // Risk-weighted demonstration tour: S -> C1 -> C4 -> C3 -> C2 -> S (avoids hazardous C1-C2 edge!)
         const tourWithML = (envRain >= 8 || envFlood >= 0.4) ? [0, 1, 4, 3, 2, 0] : [0, 1, 2, 3, 4, 0];
         const tourDistance = (tour) => tour.slice(0, -1).reduce((sum, city, i) => {
           const edge = tspEdges.find(([u, v]) => (u === city && v === tour[i + 1]) || (v === city && u === tour[i + 1]));
@@ -1863,6 +1956,29 @@
         const noMlDistance = tourDistance(tourNoML);
         const safeDistance = tourDistance(tourWithML);
 
+        const nodeR = isMob ? 12.5 : 19;
+        cities.forEach(c => {
+          ctx.fillStyle = c.color;
+          ctx.beginPath(); ctx.arc(c.x, c.y, nodeR, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = isMob ? 1.5 : 2; ctx.stroke();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(c.id, c.x, c.y + 0.5);
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 12px sans-serif';
+          const nameW = ctx.measureText(c.name).width;
+          const clampedX = Math.max(nameW / 2 + 5, Math.min(W - nameW / 2 - 5, c.x));
+          const isTopRow = (c.id === 'C1' || c.id === 'C2');
+          const labelY = isTopRow
+            ? (c.y - nodeR - (isMob ? 8 : 11))
+            : (c.y + nodeR + (isMob ? 10 : 14));
+          ctx.fillText(c.name, clampedX, labelY);
+        });
+
         function drawTourTrace(tour, color, offset, label) {
           const segs = tour.length - 1;
           const scaled = progress * segs;
@@ -1870,7 +1986,7 @@
           const frac = scaled - cur;
 
           ctx.strokeStyle = color;
-          ctx.lineWidth = 4.2;
+          ctx.lineWidth = isMob ? 3.0 : 4.2;
           ctx.beginPath();
           let car = { x: cities[tour[0]].x, y: cities[tour[0]].y + offset };
           for (let i = 0; i <= cur; i++) {
@@ -1890,39 +2006,40 @@
           ctx.stroke();
 
           ctx.fillStyle = color;
-          ctx.beginPath(); ctx.arc(car.x, car.y, 7.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(car.x, car.y, isMob ? 5.2 : 7.5, 0, Math.PI * 2); ctx.fill();
 
-          // Pill tag for car label with zero collision
-          ctx.font = 'bold 10.5px sans-serif';
-          const tw = ctx.measureText(label).width + 12;
-          const tx = car.x - tw / 2;
-          const ty = car.y + (offset < 0 ? -24 : 12);
-          ctx.fillStyle = '#070c18';
+          // Compact pill tag for moving car label, clamped inside canvas bounds
+          ctx.font = isMob ? 'bold 8.5px sans-serif' : 'bold 10.5px sans-serif';
+          const padH = isMob ? 8 : 12;
+          const pillH = isMob ? 14 : 17;
+          const tw = ctx.measureText(label).width + padH;
+          const tx = Math.max(4, Math.min(W - tw - 4, car.x - tw / 2));
+          const rawTy = car.y + (offset < 0 ? -(pillH + (isMob ? 5 : 7)) : (isMob ? 7 : 11));
+          const ty = Math.max(4, Math.min(H - pillH - 4, rawTy));
+
+          ctx.fillStyle = 'rgba(7, 12, 24, 0.92)';
           ctx.strokeStyle = color;
           ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.roundRect(tx, ty, tw, 17, 4);
+          ctx.roundRect(tx, ty, tw, pillH, 4);
           ctx.fill(); ctx.stroke();
           ctx.fillStyle = color;
-          ctx.fillText(label, tx + 6, ty + 12);
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, tx + tw / 2, ty + pillH / 2 + 0.5);
         }
 
+        const noMlLbl = isMob ? 'No-ML (Flood)' : 'No-ML (Hits Flood)';
+        const withMlLbl = isMob ? 'With ML (Safe)' : 'Risk-weighted Demo Detour';
+        const traceOff = isMob ? 4 : 6;
         if (mlMode === 'noml' || mlMode === 'both') {
-          drawTourTrace(tourNoML, '#ef4444', -6, 'No-ML (Hits Flood)');
+          drawTourTrace(tourNoML, '#ef4444', -traceOff, noMlLbl);
         }
         if (mlMode === 'ml' || mlMode === 'both') {
-          drawTourTrace(tourWithML, '#22c55e', 6, 'Risk-weighted Demo Detour');
+          drawTourTrace(tourWithML, '#22c55e', traceOff, withMlLbl);
         }
-
-        cities.forEach(c => {
-          ctx.fillStyle = c.color;
-          ctx.beginPath(); ctx.arc(c.x, c.y, 19, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
-          ctx.fillText(c.id, c.x - 8, c.y + 4);
-          ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 12px sans-serif';
-          ctx.fillText(c.name, c.x - 55, c.y + (c.y < H * 0.5 ? -26 : 32));
-        });
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
 
         // Update Tab 2 Environment Controls Card KPIs
         const k1 = document.getElementById('tsp-kpi-1-lbl');
@@ -1949,7 +2066,6 @@
         document.getElementById('tsp-card-title-2').textContent = 'Illustrative Risk';
         document.getElementById('tsp-card-risk').textContent = 'Illustrative risk';
         document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
-        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
         document.getElementById('tsp-card-sub-2').textContent = routeSimulationLabel;
         document.getElementById('tsp-card-title-3').textContent = 'Illustrative Route Score';
         document.getElementById('tsp-card-safe').textContent = 'Toy graph';
@@ -1974,14 +2090,14 @@
           `   • Risk demo tour     : ${tourWithML.map(i => cities[i].id).join(' → ')} = ${safeDistance.toFixed(1)} graph km\n` +
           `   • Synthetic teaching values, not navigation guidance.`);
       } else {
-        // Sub-mode B: A-to-B Safe Graph Routing
+        // Sub-mode B: A-to-B Safe Graph Routing (Centered & Mobile-scaled)
         const nodes = [
-          { id: 'S', name: 'Origin (Start)', x: W * 0.10, y: H * 0.50, color: '#3b82f6' },
-          { id: 'A', name: `Node A (Flood Risk ${envFlood.toFixed(2)})`, x: W * 0.38, y: H * 0.20, color: '#ef4444' },
-          { id: 'B', name: 'Node B (NH-75 Safe Hwy)', x: W * 0.38, y: H * 0.80, color: '#22c55e' },
-          { id: 'C', name: `Node C (Blackspot ${envAcc.toFixed(2)})`, x: W * 0.68, y: H * 0.20, color: '#ef4444' },
-          { id: 'D', name: 'Node D (Elevated Ring Rd)', x: W * 0.68, y: H * 0.80, color: '#22c55e' },
-          { id: 'E', name: 'Destination', x: W * 0.90, y: H * 0.50, color: '#3b82f6' }
+          { id: 'S', name: isMob ? 'Origin (S)' : 'Origin (Start)', x: W * 0.13, y: H * 0.50, color: '#3b82f6' },
+          { id: 'A', name: isMob ? `Node A (Flood ${envFlood.toFixed(1)})` : `Node A (Flood Risk ${envFlood.toFixed(2)})`, x: W * 0.38, y: H * 0.24, color: '#ef4444' },
+          { id: 'B', name: isMob ? 'Node B (Safe Hwy)' : 'Node B (NH-75 Safe Hwy)', x: W * 0.38, y: H * 0.76, color: '#22c55e' },
+          { id: 'C', name: isMob ? `Node C (Risk ${envAcc.toFixed(1)})` : `Node C (Blackspot ${envAcc.toFixed(2)})`, x: W * 0.65, y: H * 0.24, color: '#ef4444' },
+          { id: 'D', name: isMob ? 'Node D (Ring Rd)' : 'Node D (Elevated Ring Rd)', x: W * 0.65, y: H * 0.76, color: '#22c55e' },
+          { id: 'E', name: isMob ? 'Dest (E)' : 'Destination', x: W * 0.87, y: H * 0.50, color: '#3b82f6' }
         ];
         const edges = [
           [0, 1, 3.1, envFlood], [0, 2, 4.0, 0.12], [1, 3, 2.9, envAcc],
@@ -1991,12 +2107,26 @@
         edges.forEach(([u, v, d, r]) => {
           const p1 = nodes[u], p2 = nodes[v];
           ctx.strokeStyle = r > 0.5 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(148, 163, 184, 0.25)';
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = isMob ? 1.8 : 2.5;
           ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-          const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-          ctx.fillStyle = '#0f172a'; ctx.fillRect(mx - 45, my - 10, 90, 20);
-          ctx.fillStyle = r > 0.5 ? '#fca5a5' : '#cbd5e1'; ctx.font = '11px monospace';
-          ctx.fillText(`${d}km | R:${r.toFixed(2)}`, mx - 40, my + 4);
+
+          // Offset inner cross edges so labels never collide
+          let tPos = 0.5;
+          if (u === 1 && v === 4) tPos = 0.36;
+          if (u === 2 && v === 1) tPos = 0.68;
+          const mx = p1.x + (p2.x - p1.x) * tPos;
+          const my = p1.y + (p2.y - p1.y) * tPos;
+
+          const lbl = isMob ? `${d}k|R:${r.toFixed(1)}` : `${d}km | R:${r.toFixed(2)}`;
+          ctx.font = isMob ? '8px monospace' : '10.5px monospace';
+          const bw = ctx.measureText(lbl).width + (isMob ? 8 : 10);
+          const bh = isMob ? 13 : 18;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.fillRect(mx - bw / 2, my - bh / 2, bw, bh);
+          ctx.fillStyle = r > 0.5 ? '#fca5a5' : '#cbd5e1';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(lbl, mx, my + 0.5);
         });
 
         const pNoML = [0, 1, 3, 5];
@@ -2008,12 +2138,32 @@
         const shortestDistance = pathDistance(pNoML);
         const riskDemoDistance = pathDistance(pML);
 
+        const nodeR = isMob ? 12 : 18;
+        nodes.forEach(n => {
+          ctx.fillStyle = n.color;
+          ctx.beginPath(); ctx.arc(n.x, n.y, nodeR, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = isMob ? 1.5 : 2; ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(n.id, n.x, n.y + 0.5);
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = isMob ? 'bold 8.5px sans-serif' : 'bold 11.5px sans-serif';
+          const nw = ctx.measureText(n.name).width;
+          const cx = Math.max(nw / 2 + 5, Math.min(W - nw / 2 - 5, n.x));
+          const isTop = n.y < H * 0.4;
+          const cy = isTop ? (n.y - nodeR - (isMob ? 8 : 11)) : (n.y + nodeR + (isMob ? 10 : 14));
+          ctx.fillText(n.name, cx, cy);
+        });
+
         function drawRoute(path, col, off, lbl) {
           const segs = path.length - 1;
           const sc = progress * segs;
           const cur = Math.min(segs - 1, Math.floor(sc));
           const fr = sc - cur;
-          ctx.strokeStyle = col; ctx.lineWidth = 4.5; ctx.beginPath();
+          ctx.strokeStyle = col; ctx.lineWidth = isMob ? 3.0 : 4.5; ctx.beginPath();
           let car = { x: nodes[path[0]].x, y: nodes[path[0]].y + off };
           for (let i = 0; i <= cur; i++) {
             const p1 = nodes[path[i]], p2 = nodes[path[i + 1]];
@@ -2025,17 +2175,28 @@
             }
           }
           ctx.stroke();
-          ctx.fillStyle = col; ctx.beginPath(); ctx.arc(car.x, car.y, 8, 0, Math.PI * 2); ctx.fill();
-          ctx.font = 'bold 12px sans-serif'; ctx.fillText(lbl, car.x - 50, car.y + (off < 0 ? -14 : 22));
-        }
-        if (mlMode === 'noml' || mlMode === 'both') drawRoute(pNoML, '#ef4444', -5, 'Shortest Path (No ML)');
-        if (mlMode === 'ml' || mlMode === 'both') drawRoute(pML, '#22c55e', 5, 'Risk-weighted Demo Path');
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.arc(car.x, car.y, isMob ? 5.2 : 8, 0, Math.PI * 2); ctx.fill();
 
-        nodes.forEach(n => {
-          ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(n.x, n.y, 18, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.fillText(n.id, n.x - 5, n.y + 4);
-          ctx.fillStyle = '#f8fafc'; ctx.fillText(n.name, n.x - 65, n.y + (n.y < H * 0.5 ? -25 : 34));
-        });
+          ctx.font = isMob ? 'bold 8.5px sans-serif' : 'bold 10.5px sans-serif';
+          const pillH = isMob ? 14 : 17;
+          const tw = ctx.measureText(lbl).width + (isMob ? 8 : 12);
+          const tx = Math.max(4, Math.min(W - tw - 4, car.x - tw / 2));
+          const ty = Math.max(4, Math.min(H - pillH - 4, car.y + (off < 0 ? -(pillH + 6) : 8)));
+          ctx.fillStyle = 'rgba(7, 12, 24, 0.92)';
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.roundRect(tx, ty, tw, pillH, 4); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = col;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(lbl, tx + tw / 2, ty + pillH / 2 + 0.5);
+        }
+        const rOff = isMob ? 3.5 : 5;
+        if (mlMode === 'noml' || mlMode === 'both') drawRoute(pNoML, '#ef4444', -rOff, isMob ? 'Shortest (No ML)' : 'Shortest Path (No ML)');
+        if (mlMode === 'ml' || mlMode === 'both') drawRoute(pML, '#22c55e', rOff, isMob ? 'Safe Path (ML)' : 'Risk-weighted Demo Path');
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
 
         // Update Tab 2 Environment Controls Card KPIs for Dijkstra
         const dk1 = document.getElementById('tsp-kpi-1-lbl');
@@ -2064,7 +2225,6 @@
         document.getElementById('tsp-card-sub-1').textContent = `${(riskDemoDistance - shortestDistance).toFixed(1)} km change in this toy graph`;
         document.getElementById('tsp-card-title-2').textContent = 'Illustrative Risk';
         document.getElementById('tsp-card-risk').textContent = 'Illustrative risk';
-        document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
         document.getElementById('tsp-card-risk-bar').style.width = `${Math.round(envFlood * 100)}%`;
         document.getElementById('tsp-card-sub-2').textContent = routeSimulationLabel;
         document.getElementById('tsp-card-title-3').textContent = 'Illustrative Route Score';
@@ -2097,13 +2257,15 @@
     // =========================================================================
     function drawTab3() {
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
+      const isMob = W < 560;
       ctx.clearRect(0, 0, W, H);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
 
-      const marginX = Math.max(16, Math.floor(W * 0.035));
+      const marginX = isMob ? 8 : Math.max(16, Math.floor(W * 0.035));
       const availW = W - 2 * marginX;
-      // Symmetrical 4-column distribution with guaranteed identical side margins
-      const bw = Math.min(168, Math.floor(availW * 0.21));
-      const bh = Math.min(76, Math.floor(H * 0.22));
+      const bw = Math.min(168, Math.floor(availW * (isMob ? 0.225 : 0.21)));
+      const bh = Math.min(76, Math.floor(H * (isMob ? 0.23 : 0.22)));
       const gapX = (availW - 4 * bw) / 3;
 
       const col1X = marginX;
@@ -2116,18 +2278,18 @@
       const row3Y = H * 0.70;
 
       const blocks = [
-        { x: col1X, y: row1Y, w: bw, h: bh, title: '1. Recorded IMU Dataset', sub: 'Offline NUANCE benchmark replay', col: '#3b82f6' },
-        { x: col1X, y: row2Y, w: bw, h: bh, title: '2. Recorded GPS Targets', sub: 'Held-out labels; not live GPS', col: '#06b6d4' },
-        { x: col1X, y: row3Y, w: bw, h: bh, title: '3. Synthetic Hazard Inputs', sub: 'Local sliders; no provider APIs', col: '#f59e0b' },
+        { x: col1X, y: row1Y, w: bw, h: bh, title: isMob ? '1. IMU Dataset' : '1. Recorded IMU Dataset', sub: isMob ? 'NUANCE replay' : 'Offline NUANCE benchmark replay', col: '#3b82f6' },
+        { x: col1X, y: row2Y, w: bw, h: bh, title: isMob ? '2. GPS Targets' : '2. Recorded GPS Targets', sub: isMob ? 'Held-out labels' : 'Held-out labels; not live GPS', col: '#06b6d4' },
+        { x: col1X, y: row3Y, w: bw, h: bh, title: isMob ? '3. Hazard Sliders' : '3. Synthetic Hazard Inputs', sub: isMob ? 'Local demo inputs' : 'Local sliders; no provider APIs', col: '#f59e0b' },
 
-        { x: col2X, y: row1Y, w: bw, h: bh, title: '4. Stored Feature Columns', sub: 'Precomputed in source CSV', col: '#8b5cf6' },
-        { x: col2X, y: row2Y, w: bw, h: bh, title: '5. EKF / ZUPT Absent', sub: 'Not implemented in this demo', col: '#10b981' },
-        { x: col2X, y: row3Y, w: bw, h: bh, title: '6. Fixed Risk Weighting', sub: 'Toy values; no Bayesian model', col: '#ec4899' },
+        { x: col2X, y: row1Y, w: bw, h: bh, title: isMob ? '4. 16 Features' : '4. Stored Feature Columns', sub: isMob ? 'Source CSV cols' : 'Precomputed in source CSV', col: '#8b5cf6' },
+        { x: col2X, y: row2Y, w: bw, h: bh, title: isMob ? '5. No EKF/ZUPT' : '5. EKF / ZUPT Absent', sub: isMob ? 'Offline only' : 'Not implemented in this demo', col: '#10b981' },
+        { x: col2X, y: row3Y, w: bw, h: bh, title: isMob ? '6. Risk Weights' : '6. Fixed Risk Weighting', sub: isMob ? 'Toy edge formula' : 'Toy values; no Bayesian model', col: '#ec4899' },
 
-        { x: col3X, y: row1Y + 20, w: bw, h: bh + 14, title: '7. Offline ML Models', sub: 'Standalone MLP + two target stacks', col: mlMode === 'noml' ? '#475569' : '#22c55e' },
-        { x: col3X, y: row3Y - 16, w: bw, h: bh + 14, title: '8. Preset Route Demo', sub: 'Threshold switch; no solver', col: mlMode === 'noml' ? '#475569' : '#14b8a6' },
+        { x: col3X, y: row1Y + (isMob ? 12 : 20), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '7. ML Models' : '7. Offline ML Models', sub: isMob ? 'MLP + Stacking' : 'Standalone MLP + two target stacks', col: mlMode === 'noml' ? '#475569' : '#22c55e' },
+        { x: col3X, y: row3Y - (isMob ? 10 : 16), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '8. Route Demo' : '8. Preset Route Demo', sub: isMob ? 'Threshold switch' : 'Threshold switch; no solver', col: mlMode === 'noml' ? '#475569' : '#14b8a6' },
 
-        { x: col4X, y: row2Y - 10, w: bw, h: bh * 1.3, title: '9. Offline Trace', sub: mlMode === 'noml' ? `${backendData.metrics.endpoint_dr}m baseline\nholdout endpoint` : `${backendData.metrics.imp_mlp}% MLP reduction\nholdout endpoint`, col: mlMode === 'noml' ? '#ef4444' : '#22c55e' }
+        { x: col4X, y: row2Y - (isMob ? 6 : 10), w: bw, h: bh * 1.3, title: '9. Offline Trace', sub: mlMode === 'noml' ? (isMob ? `${backendData.metrics.endpoint_dr}m error` : `${backendData.metrics.endpoint_dr}m baseline\nholdout endpoint`) : (isMob ? `${backendData.metrics.imp_mlp}% MLP gain` : `${backendData.metrics.imp_mlp}% MLP reduction\nholdout endpoint`), col: mlMode === 'noml' ? '#ef4444' : '#22c55e' }
       ];
 
       const links = [
@@ -2139,29 +2301,31 @@
         const x1 = b1.x + b1.w, y1 = b1.y + b1.h / 2;
         const x2 = b2.x, y2 = b2.y + b2.h / 2;
 
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = isMob ? 1.6 : 2.5;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 
-        // Animated glowing packets
         for (let k = 0; k < 2; k++) {
           const t = ((progress * 3.5 + idx * 0.13 + k * 0.5) % 1.0);
           const px = x1 + (x2 - x1) * t;
           const py = y1 + (y2 - y1) * t;
           ctx.fillStyle = mlMode === 'noml' ? '#ef4444' : '#38bdf8';
-          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(px, py, isMob ? 3.5 : 5, 0, Math.PI * 2); ctx.fill();
         }
       });
 
       blocks.forEach(b => {
         ctx.fillStyle = '#1e293b';
         ctx.strokeStyle = b.col;
-        ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 10); ctx.fill(); ctx.stroke();
+        ctx.lineWidth = isMob ? 1.5 : 2.2;
+        ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, isMob ? 6 : 10); ctx.fill(); ctx.stroke();
 
-        ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 11.5px sans-serif';
-        ctx.fillText(b.title, b.x + 11, b.y + 25);
-        ctx.fillStyle = '#94a3b8'; ctx.font = '10.5px monospace';
-        b.sub.split('\n').forEach((ln, i) => ctx.fillText(ln, b.x + 11, b.y + 45 + i * 16));
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4, isMob ? 5 : 8); ctx.clip();
+        ctx.fillStyle = '#f8fafc'; ctx.font = isMob ? 'bold 8px sans-serif' : 'bold 11.5px sans-serif';
+        ctx.fillText(b.title, b.x + (isMob ? 5 : 11), b.y + (isMob ? 18 : 25));
+        ctx.fillStyle = '#94a3b8'; ctx.font = isMob ? '7.5px monospace' : '10.5px monospace';
+        b.sub.split('\n').forEach((ln, i) => ctx.fillText(ln, b.x + (isMob ? 5 : 11), b.y + (isMob ? 32 : 45) + i * (isMob ? 11 : 16)));
+        ctx.restore();
       });
 
       // Update KPIs & Pipeline on Right Column for Tab 3 (Fully covered!)
