@@ -691,6 +691,215 @@
     th { background: var(--card); color: var(--muted); font-family: sans-serif; font-weight: 600; }
     .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 11px; }
     .slider-row input { flex: 1; accent-color: var(--primary); height: 4px; }
+  
+    /* =========================================================================
+       MOBILE & RESPONSIVE LAYOUT ENHANCEMENTS (< 850px)
+       ========================================================================= */
+    @media (max-width: 850px) {
+      body {
+        overflow-x: hidden;
+      }
+
+      /* 1. Header: Brand on top, Tabs on bottom as smooth scrollable bar */
+      header {
+        height: auto !important;
+        min-height: 84px;
+        padding: 8px 12px 6px 12px;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px;
+        overflow: visible !important;
+        white-space: normal !important;
+      }
+      .brand {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .logo-pill {
+        font-size: 10.5px;
+        padding: 4px 7px;
+      }
+      .brand h1 {
+        font-size: 13px;
+        margin: 0;
+      }
+      .brand p {
+        font-size: 9px;
+        margin: 2px 0 0 0;
+        white-space: normal;
+        line-height: 1.2;
+      }
+      .nav-tabs {
+        width: 100%;
+        display: flex;
+        gap: 5px;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+      }
+      .nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab-btn {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      /* 2. Interactive Toolbar: 2 Distinct Rows (Mode Row + Playback Row) */
+      .toolbar {
+        height: auto !important;
+        min-height: 84px;
+        padding: 8px 12px;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px;
+        overflow: visible !important;
+        white-space: normal !important;
+      }
+      .mode-group {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        padding: 3px;
+        box-sizing: border-box;
+      }
+      .mode-group > span:first-child {
+        display: none;
+      }
+      .mode-pill {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 4px;
+        font-size: 10.5px;
+        gap: 4px;
+        text-align: center;
+      }
+      .mode-tsp {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 4px;
+        font-size: 10.5px;
+        gap: 4px;
+        text-align: center;
+      }
+
+      .playback-group {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 5px;
+        overflow: visible !important;
+      }
+      .playback-group .btn {
+        padding: 5px 8px;
+        font-size: 10.5px;
+        flex-shrink: 0;
+      }
+      .scrubber {
+        flex: 1;
+        min-width: 40px;
+        height: 6px;
+      }
+      #time-readout {
+        font-size: 10px;
+        min-width: 60px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .custom-dropdown {
+        width: 82px;
+        flex-shrink: 0;
+      }
+      .dropdown-trigger {
+        padding: 4px 6px;
+        font-size: 10px;
+      }
+
+      /* 3. Panel Header & Badge spacing */
+      .panel-header {
+        height: auto !important;
+        min-height: 44px;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .panel-header > div:first-child {
+        font-size: 11.5px;
+        line-height: 1.3;
+        white-space: normal;
+        max-width: 65%;
+      }
+      #canvas-badge {
+        font-size: 10.5px;
+        padding: 3px 7px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* 4. Canvas & Layout sizing on mobile */
+      .workspace {
+        padding: 8px;
+        gap: 10px;
+        min-height: auto;
+      }
+      .canvas-main-container {
+        min-height: 280px;
+        height: 320px;
+      }
+      .bottom-analytics-box {
+        height: 195px;
+      }
+      .analytics-panel {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px;
+        padding: 8px;
+      }
+      .analytics-card {
+        padding: 8px 10px;
+      }
+      .analytics-card .title {
+        font-size: 10px;
+      }
+      .analytics-card .stat {
+        font-size: 14px;
+      }
+      .analytics-card .subtext {
+        font-size: 9.5px;
+      }
+
+      .legend-row {
+        height: auto !important;
+        min-height: 32px;
+        padding: 6px 10px;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        gap: 10px;
+      }
+      .legend-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      .side-col {
+        height: auto !important;
+      }
+      .card-math {
+        min-height: 200px;
+      }
+    }
+
   </style>
 </head>
 <body>
