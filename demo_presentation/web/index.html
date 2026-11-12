@@ -1894,6 +1894,17 @@
         }
         errCtx.stroke();
       }
+      // Draw visible 0m Ground Truth / Recorded Benchmark Target baseline
+      const gtZeroY = mapEY(0);
+      errCtx.strokeStyle = '#cbd5e1';
+      errCtx.lineWidth = isErrMob ? 1.5 : 2;
+      errCtx.setLineDash([6, 6]);
+      errCtx.beginPath();
+      errCtx.moveTo(mapEX(0), gtZeroY);
+      errCtx.lineTo(mapEX(curIdx), gtZeroY);
+      errCtx.stroke();
+      errCtx.setLineDash([]);
+
       if (mlMode === 'noml' || mlMode === 'both') drawErrCurve(tr.err_noml, '#ef4444');
       if (mlMode === 'ml' || mlMode === 'both') {
         drawErrCurve(tr.err_stack, '#38bdf8');
