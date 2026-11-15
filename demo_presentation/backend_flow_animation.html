@@ -1066,6 +1066,12 @@
     .pred-card-stack { border-color: var(--cyan); }
 
     @media (max-width: 850px) {
+      header {
+        position: relative;
+      }
+      .brand {
+        padding-right: 78px;
+      }
       .header-actions {
         width: 100%;
         display: flex;
@@ -1073,9 +1079,12 @@
         gap: 6px;
       }
       .theme-btn {
-        align-self: flex-end;
+        position: absolute;
+        top: 8px;
+        right: 12px;
         padding: 5px 10px;
         font-size: 11px;
+        z-index: 5;
       }
     }
 
