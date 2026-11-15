@@ -1017,6 +1017,251 @@
       }
     }
 
+
+    /* =========================================================================
+       HEADER ACTIONS & THEME TOGGLE BUTTON
+       ========================================================================= */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .theme-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .theme-btn:hover {
+      border-color: var(--primary);
+      background: var(--card-hover);
+    }
+
+    /* Tab 4 theme-aware helper classes */
+    .infer-slider-row {
+      background: #090e1a;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .pred-card {
+      background: #0b1220;
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+    }
+    .pred-card-mlp { border-color: var(--green); }
+    .pred-card-stack { border-color: var(--cyan); }
+
+    @media (max-width: 850px) {
+      .header-actions {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .theme-btn {
+        align-self: flex-end;
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+    }
+
+    /* =========================================================================
+       COMPLETE LIGHT THEME PALETTE (HIGH-CONTRAST DAYLIGHT MODE)
+       ========================================================================= */
+    body.light-theme {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --card: #f8fafc;
+      --card-hover: #e2e8f0;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --cyan: #0891b2;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --purple: #7c3aed;
+    }
+    body.light-theme header {
+      background: linear-gradient(90deg, #ffffff 0%, #eff6ff 50%, #ffffff 100%);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    }
+    body.light-theme .brand h1 { color: #0f172a; }
+    body.light-theme .tab-btn {
+      background: #f8fafc;
+      color: #475569;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .tab-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    body.light-theme .tab-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+    }
+    body.light-theme .toolbar {
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    body.light-theme .mode-group {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .mode-noml {
+      background: rgba(220, 38, 38, 0.10);
+      color: #b91c1c;
+      border-color: rgba(220, 38, 38, 0.38);
+    }
+    body.light-theme .mode-noml:hover {
+      background: rgba(220, 38, 38, 0.18);
+      color: #7f1d1d;
+    }
+    body.light-theme .mode-ml {
+      background: rgba(22, 163, 74, 0.10);
+      color: #15803d;
+      border-color: rgba(22, 163, 74, 0.38);
+    }
+    body.light-theme .mode-ml:hover {
+      background: rgba(22, 163, 74, 0.18);
+      color: #14532d;
+    }
+    body.light-theme .mode-ml.active-green {
+      color: #ffffff !important;
+    }
+    body.light-theme .mode-both {
+      background: rgba(8, 145, 178, 0.10);
+      color: #0e7490;
+      border-color: rgba(8, 145, 178, 0.38);
+    }
+    body.light-theme .mode-both:hover {
+      background: rgba(8, 145, 178, 0.18);
+      color: #164e63;
+    }
+    body.light-theme .mode-both.active-cyan {
+      background: #0891b2 !important;
+      color: #ffffff !important;
+      border-color: #06b6d4 !important;
+    }
+    body.light-theme .mode-tsp {
+      background: rgba(2, 132, 199, 0.10);
+      color: #0369a1;
+      border-color: rgba(2, 132, 199, 0.35);
+    }
+    body.light-theme .mode-tsp:hover {
+      background: rgba(2, 132, 199, 0.18);
+      color: #0c4a6e;
+    }
+    body.light-theme .dropdown-trigger {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    body.light-theme .dropdown-trigger.open {
+      background: #eff6ff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    body.light-theme .dropdown-chevron { stroke: #2563eb; }
+    body.light-theme .dropdown-menu {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12) !important;
+    }
+    body.light-theme .dropdown-item { color: #475569; }
+    body.light-theme .dropdown-item:hover {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    body.light-theme .dropdown-item.active {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    body.light-theme .dropdown-item.active::after { color: #2563eb; }
+
+    body.light-theme .panel-box,
+    body.light-theme .card {
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+    }
+    body.light-theme .panel-header {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    body.light-theme .badge,
+    body.light-theme #canvas-badge {
+      background: #eff6ff;
+      color: #0369a1;
+      border-color: #bfdbfe;
+    }
+    body.light-theme .canvas-main-container {
+      background: #ffffff;
+    }
+    body.light-theme .bottom-analytics-box,
+    body.light-theme .analytics-panel {
+      background: #f8fafc;
+    }
+    body.light-theme .analytics-card {
+      background: #ffffff;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .analytics-card .bar-track {
+      background: #e2e8f0;
+    }
+    body.light-theme .legend-row {
+      background: #f8fafc;
+      color: #334155;
+    }
+    body.light-theme .math-box {
+      background: #f8fafc;
+      color: #0369a1;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .pipe-step {
+      background: #f8fafc;
+    }
+    body.light-theme .pipe-step.active {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      border-left: 3px solid #2563eb;
+    }
+    body.light-theme .step-title { color: #0f172a; }
+    body.light-theme .step-badge {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    body.light-theme .step-badge.badge-active {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border-color: #93c5fd;
+    }
+    body.light-theme .infer-slider-row {
+      background: #f1f5f9;
+    }
+    body.light-theme .pred-card {
+      background: #f8fafc;
+    }
+    body.light-theme th {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
   </style>
 </head>
 <body>
@@ -1030,11 +1275,17 @@
         <p>Recorded NUANCE Dataset Replay (10Hz prepared features)</p>
       </div>
     </div>
-    <div class="nav-tabs">
-      <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. GPS Path Tracing</button>
-      <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Illustrative Route Graph</button>
-      <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">3. Backend Pipeline</button>
-      <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)">4. Dataset &amp; Training</button>
+    <div class="header-actions">
+      <div class="nav-tabs">
+        <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">1. GPS Path Tracing</button>
+        <button id="tab-btn-2" class="tab-btn" onclick="switchTab(2)">2. Illustrative Route Graph</button>
+        <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">3. Backend Pipeline</button>
+        <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)">4. Dataset &amp; Training</button>
+      </div>
+      <button id="theme-toggle-btn" class="theme-btn" onclick="toggleTheme()" title="Switch Light / Dark Theme">
+        <svg id="theme-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        <span id="theme-toggle-label">Light</span>
+      </button>
     </div>
   </header>
 
@@ -1307,10 +1558,10 @@
         <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
           Drag the slider to send a recorded sample from the fixed 30-second dataset holdout to the Python backend for offline model inference:
         </p>
-        <div class="slider-row" style="background:#090e1a; padding:8px 12px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px;">
+        <div class="slider-row infer-slider-row">
           <span style="font-weight:700; color:var(--text); font-size:11.5px; width:130px;">Outage Step (0..300):</span>
           <input type="range" id="infer-slider" min="0" max="300" value="100" oninput="runLiveStepInference(this.value)" style="flex:1;" />
-          <span id="infer-step-badge" class="badge" style="font-size:11.5px; padding:3px 10px; color:#38bdf8; border-color:#38bdf8;">Step 100 (t=310.0s)</span>
+          <span id="infer-step-badge" class="badge" style="font-size:11.5px; padding:3px 10px; color:var(--cyan); border-color:var(--cyan);">Step 100 (t=310.0s)</span>
         </div>
         <div id="infer-output-box" style="margin-top:8px;">
           <!-- 16-D Features Sub-Grid -->
@@ -1349,23 +1600,23 @@
             Offline Python model predictions vs. recorded benchmark target:
           </div>
           <div class="infer-pred-grid">
-            <div style="background:#0b1220; border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#94a3b8; font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dx: -0.0728 m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dy: -0.5411 m</div>
-              <div style="font-size:10px; color:#64748b; margin-top:4px;">Benchmark Target</div>
+            <div class="pred-card pred-card-gt">
+              <div style="font-size:10.5px; color:var(--muted); font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--text); font-weight:700;">dx: -0.0728 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--text); font-weight:700;">dy: -0.5411 m</div>
+              <div style="font-size:10px; color:var(--muted); margin-top:4px;">Benchmark Target</div>
             </div>
-            <div style="background:#0b1220; border:1px solid #22c55e; border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#4ade80; font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dx: +0.2140 m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dy: -0.4272 m</div>
-              <div style="font-size:10px; color:#22c55e; margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_mlp}%</div>
+            <div class="pred-card pred-card-mlp">
+              <div style="font-size:10.5px; color:var(--green); font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--green); font-weight:700;">dx: +0.2140 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--green); font-weight:700;">dy: -0.4272 m</div>
+              <div style="font-size:10px; color:var(--green); margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_mlp}%</div>
             </div>
-            <div style="background:#0b1220; border:1px solid #38bdf8; border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#38bdf8; font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dx: +0.0877 m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dy: -0.2852 m</div>
-              <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_stack}%</div>
+            <div class="pred-card pred-card-stack">
+              <div style="font-size:10.5px; color:var(--cyan); font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--cyan); font-weight:700;">dx: +0.0877 m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--cyan); font-weight:700;">dy: -0.2852 m</div>
+              <div style="font-size:10px; color:var(--cyan); margin-top:4px; font-weight:700;">One-interval endpoint error metric: +${backendData.metrics.imp_stack}%</div>
             </div>
           </div>
         </div>
@@ -1419,6 +1670,69 @@
     let envFlood = 0.80;
     let envAcc = 0.90;
     const routeSimulationLabel = 'Illustrative graph simulation (no live map or hazard API)';
+
+    // Theme management (Dark / Light mode synced across CSS + Canvas 2D)
+    function isLightTheme() {
+      return document.body.classList.contains('light-theme');
+    }
+
+    function applyTheme(mode) {
+      const isLight = (mode === 'light');
+      document.body.classList.toggle('light-theme', isLight);
+      const lbl = document.getElementById('theme-toggle-label');
+      const icon = document.getElementById('theme-icon-sun');
+      if (lbl) lbl.textContent = isLight ? 'Dark' : 'Light';
+      if (icon) {
+        icon.innerHTML = isLight
+          ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
+          : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+      }
+      try { localStorage.setItem('navguide_theme', isLight ? 'light' : 'dark'); } catch (_) {}
+    }
+
+    function toggleTheme() {
+      applyTheme(isLightTheme() ? 'dark' : 'light');
+    }
+
+    (function initSavedTheme() {
+      try {
+        const saved = localStorage.getItem('navguide_theme');
+        if (saved === 'light') applyTheme('light');
+      } catch (_) {}
+    })();
+
+    function getCanvasTheme() {
+      const light = isLightTheme();
+      return {
+        light,
+        grid: light ? 'rgba(148, 163, 184, 0.25)' : 'rgba(51, 65, 85, 0.35)',
+        roadBg: light ? 'rgba(100, 116, 139, 0.16)' : 'rgba(148, 163, 184, 0.14)',
+        roadDash: light ? '#475569' : '#94a3b8',
+        textMain: light ? '#0f172a' : '#f8fafc',
+        textMuted: light ? '#475569' : '#94a3b8',
+        textSubtle: light ? '#64748b' : '#64748b',
+        red: light ? '#dc2626' : '#ef4444',
+        redSoft: light ? 'rgba(220, 38, 38, 0.55)' : 'rgba(239, 68, 68, 0.55)',
+        green: light ? '#16a34a' : '#22c55e',
+        cyan: light ? '#0284c7' : '#38bdf8',
+        gtRing: light ? '#0f172a' : '#ffffff',
+        zeroDash: light ? '#334155' : '#cbd5e1',
+        errGrid: light ? 'rgba(148, 163, 184, 0.35)' : 'rgba(51, 65, 85, 0.4)',
+        hzFill: light ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.14)',
+        hzStroke: light ? 'rgba(220, 38, 38, 0.50)' : 'rgba(239, 68, 68, 0.55)',
+        hzText: light ? '#b91c1c' : '#fca5a5',
+        edgeNormal: light ? 'rgba(100, 116, 139, 0.28)' : 'rgba(148, 163, 184, 0.20)',
+        edgeRisk: light ? 'rgba(220, 38, 38, 0.50)' : 'rgba(239, 68, 68, 0.45)',
+        edgeLabelBg: light ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.92)',
+        edgeLabelText: light ? '#475569' : '#94a3b8',
+        edgeLabelRisk: light ? '#dc2626' : '#f87171',
+        pillBg: light ? 'rgba(255, 255, 255, 0.96)' : 'rgba(7, 12, 24, 0.92)',
+        nodeStroke: light ? '#ffffff' : '#ffffff',
+        linkLine: light ? '#cbd5e1' : '#334155',
+        blockBg: light ? '#ffffff' : '#1e293b',
+        blockDisabled: light ? '#94a3b8' : '#475569'
+      };
+    }
 
     // High-DPI / Canvas Replay Auto-Scaler
     function setupCanvasDpr(canvas, canvasCtx) {
@@ -1707,6 +2021,7 @@
       if (!backendData) return;
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
       const isMob = W < 560;
+      const ct = getCanvasTheme();
       const tr = backendData.trajectories;
       const n = tr.n_steps;
       const fIdx = progress * (n - 1);
@@ -1729,7 +2044,7 @@
       const mapY = y => H - padBot - ((y - minY) / (maxY - minY)) * (H - padTop - padBot);
 
       // Draw subtle grid
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+      ctx.strokeStyle = ct.grid;
       ctx.lineWidth = 1;
       const gridStepX = isMob ? 65 : 90;
       const gridStepY = isMob ? 55 : 75;
@@ -1741,7 +2056,7 @@
       }
 
       // Draw full static Road Asphalt & Ground Truth Centerline
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.strokeStyle = ct.roadBg;
       ctx.lineWidth = isMob ? 18 : 26;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -1752,7 +2067,7 @@
       }
       ctx.stroke();
 
-      ctx.strokeStyle = '#94a3b8';
+      ctx.strokeStyle = ct.roadDash;
       ctx.lineWidth = isMob ? 1.4 : 1.8;
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
@@ -1767,7 +2082,7 @@
       const sx = mapX(tr.gt_x[0]), sy = mapY(tr.gt_y[0]);
       ctx.fillStyle = '#3b82f6';
       ctx.beginPath(); ctx.arc(sx, sy, isMob ? 5.5 : 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = ct.textMain;
       ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
@@ -1799,8 +2114,8 @@
 
       // 1. Without ML (Pure IMU Dead Reckoning - Red)
       if (mlMode === 'noml' || mlMode === 'both') {
-        const noMlTip = drawSmoothTrace(tr.noml_x, tr.noml_y, '#ef4444', 3.2);
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+        const noMlTip = drawSmoothTrace(tr.noml_x, tr.noml_y, ct.red, 3.2);
+        ctx.strokeStyle = ct.redSoft;
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -1809,7 +2124,7 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = ct.red;
         ctx.beginPath(); ctx.arc(noMlTip.x, noMlTip.y, isMob ? 5.5 : 7.5, 0, Math.PI * 2); ctx.fill();
         ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
         const noMlTxt = isMob
@@ -1823,10 +2138,10 @@
 
       // 2. With ML (Stacking Model + Standalone MLP)
       if (mlMode === 'ml' || mlMode === 'both') {
-        const stackTip = drawSmoothTrace(tr.stack_x, tr.stack_y, '#38bdf8', 2.4, true);
-        const mlpTip = drawSmoothTrace(tr.mlp_x, tr.mlp_y, '#22c55e', 3.5);
+        const stackTip = drawSmoothTrace(tr.stack_x, tr.stack_y, ct.cyan, 2.4, true);
+        const mlpTip = drawSmoothTrace(tr.mlp_x, tr.mlp_y, ct.green, 3.5);
 
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = ct.cyan;
         ctx.beginPath(); ctx.arc(stackTip.x, stackTip.y, isMob ? 4.5 : 6, 0, Math.PI * 2); ctx.fill();
         ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 11.5px sans-serif';
         const stTxt = isMob
@@ -1837,7 +2152,7 @@
         const sty = Math.min(H - 8, stackTip.y + (isMob ? 12 : 4));
         ctx.fillText(stTxt, stx, sty);
 
-        ctx.fillStyle = '#22c55e';
+        ctx.fillStyle = ct.green;
         ctx.beginPath(); ctx.arc(mlpTip.x, mlpTip.y, isMob ? 6 : 8, 0, Math.PI * 2); ctx.fill();
         ctx.font = isMob ? 'bold 9.5px sans-serif' : 'bold 12px sans-serif';
         const mlTxt = isMob
@@ -1850,10 +2165,10 @@
       }
 
       // Ground Truth Vehicle Ring + Clear Label
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = ct.gtRing;
       ctx.lineWidth = isMob ? 2 : 2.5;
       ctx.beginPath(); ctx.arc(gtTip.x, gtTip.y, isMob ? 4.5 : 6, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#f8fafc';
+      ctx.fillStyle = ct.textMain;
       ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 11.5px sans-serif';
       const gtTxt = isMob ? 'Real Car' : 'Real Car (GPS Target)';
       const gtw = ctx.measureText(gtTxt).width;
@@ -1865,7 +2180,7 @@
       const { W: EW, H: EH } = setupCanvasDpr(errCanvas, errCtx);
       const isErrMob = EW < 560;
       errCtx.clearRect(0, 0, EW, EH);
-      errCtx.fillStyle = '#94a3b8';
+      errCtx.fillStyle = ct.textMuted;
       errCtx.font = isErrMob ? 'bold 8.5px monospace' : 'bold 10px monospace';
       errCtx.textAlign = 'left';
       errCtx.fillText(
@@ -1882,12 +2197,12 @@
       // Y-axis grid lines
       [0, 50, 100, 150].forEach(val => {
         const gy = mapEY(val);
-        errCtx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+        errCtx.strokeStyle = ct.errGrid;
         errCtx.lineWidth = 1;
         errCtx.beginPath();
         errCtx.moveTo(errLeft, gy); errCtx.lineTo(EW - errRight, gy);
         errCtx.stroke();
-        errCtx.fillStyle = '#64748b';
+        errCtx.fillStyle = ct.textSubtle;
         errCtx.font = isErrMob ? '8.5px monospace' : '9.5px monospace';
         errCtx.fillText(`${val}m`, isErrMob ? 10 : 18, gy + 3);
       });
@@ -1896,7 +2211,7 @@
       [0, 10, 20, 30].forEach(sec => {
         const step = Math.round((sec / 30.0) * (n - 1));
         const gx = mapEX(step);
-        errCtx.fillStyle = '#64748b';
+        errCtx.fillStyle = ct.textSubtle;
         errCtx.font = isErrMob ? '8.5px monospace' : '9.5px monospace';
         errCtx.fillText(`${sec}s`, gx - 8, EH - 6);
       });
@@ -1913,7 +2228,7 @@
       }
       // Draw visible 0m Ground Truth / Recorded Benchmark Target baseline
       const gtZeroY = mapEY(0);
-      errCtx.strokeStyle = '#cbd5e1';
+      errCtx.strokeStyle = ct.zeroDash;
       errCtx.lineWidth = isErrMob ? 1.5 : 2;
       errCtx.setLineDash([6, 6]);
       errCtx.beginPath();
@@ -1922,10 +2237,10 @@
       errCtx.stroke();
       errCtx.setLineDash([]);
 
-      if (mlMode === 'noml' || mlMode === 'both') drawErrCurve(tr.err_noml, '#ef4444');
+      if (mlMode === 'noml' || mlMode === 'both') drawErrCurve(tr.err_noml, ct.red);
       if (mlMode === 'ml' || mlMode === 'both') {
-        drawErrCurve(tr.err_stack, '#38bdf8');
-        drawErrCurve(tr.err_mlp, '#22c55e');
+        drawErrCurve(tr.err_stack, ct.cyan);
+        drawErrCurve(tr.err_mlp, ct.green);
       }
 
       // Update KPIs & Pipeline
@@ -1979,6 +2294,7 @@
     function drawTab2() {
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
       const isMob = W < 560;
+      const ct = getCanvasTheme();
       ctx.clearRect(0, 0, W, H);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
@@ -2034,13 +2350,13 @@
         const hzX = Math.max(8, Math.min(W - hzW - 8, midC12 - hzW / 2));
         const hzY = isMob ? 5 : Math.max(6, H * 0.03);
 
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.14)';
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+        ctx.fillStyle = ct.hzFill;
+        ctx.strokeStyle = ct.redSoft;
         ctx.lineWidth = 1.3;
         ctx.beginPath();
         ctx.roundRect(hzX, hzY, hzW, hzH, 5);
         ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#fca5a5';
+        ctx.fillStyle = ct.hzText;
         ctx.textAlign = 'center';
         ctx.fillText(hzLine1, hzX + hzW / 2, hzY + (isMob ? 10 : 15));
         ctx.fillText(hzLine2, hzX + hzW / 2, hzY + (isMob ? 20 : 29));
@@ -2055,7 +2371,7 @@
 
         tspEdges.forEach(([u, v, dist, risk]) => {
           const p1 = cities[u], p2 = cities[v];
-          ctx.strokeStyle = risk > 0.5 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(148, 163, 184, 0.20)';
+          ctx.strokeStyle = risk > 0.5 ? ct.edgeRisk : ct.edgeNormal;
           ctx.lineWidth = risk > 0.5 ? (isMob ? 2.2 : 3) : (isMob ? 1.3 : 1.8);
           ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
@@ -2078,9 +2394,9 @@
           const bw = ctx.measureText(lblTxt).width + (isMob ? 8 : 10);
           const bh = isMob ? 13 : 18;
 
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.fillStyle = ct.edgeLabelBg;
           ctx.fillRect(mx - bw / 2, my - bh / 2, bw, bh);
-          ctx.fillStyle = risk > 0.5 ? '#f87171' : '#94a3b8';
+          ctx.fillStyle = risk > 0.5 ? ct.edgeLabelRisk : ct.edgeLabelText;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(lblTxt, mx, my + 0.5);
@@ -2109,7 +2425,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(c.id, c.x, c.y + 0.5);
 
-          ctx.fillStyle = '#f8fafc';
+          ctx.fillStyle = ct.textMain;
           ctx.font = isMob ? 'bold 9px sans-serif' : 'bold 12px sans-serif';
           const nameW = ctx.measureText(c.name).width;
           const clampedX = Math.max(nameW / 2 + 5, Math.min(W - nameW / 2 - 5, c.x));
@@ -2158,7 +2474,7 @@
           const rawTy = car.y + (offset < 0 ? -(pillH + (isMob ? 5 : 7)) : (isMob ? 7 : 11));
           const ty = Math.max(4, Math.min(H - pillH - 4, rawTy));
 
-          ctx.fillStyle = 'rgba(7, 12, 24, 0.92)';
+          ctx.fillStyle = ct.pillBg;
           ctx.strokeStyle = color;
           ctx.lineWidth = 1;
           ctx.beginPath();
@@ -2174,10 +2490,10 @@
         const withMlLbl = isMob ? 'With ML (Safe)' : 'Risk-weighted Demo Detour';
         const traceOff = isMob ? 4 : 6;
         if (mlMode === 'noml' || mlMode === 'both') {
-          drawTourTrace(tourNoML, '#ef4444', -traceOff, noMlLbl);
+          drawTourTrace(tourNoML, ct.red, -traceOff, noMlLbl);
         }
         if (mlMode === 'ml' || mlMode === 'both') {
-          drawTourTrace(tourWithML, '#22c55e', traceOff, withMlLbl);
+          drawTourTrace(tourWithML, ct.green, traceOff, withMlLbl);
         }
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -2247,7 +2563,7 @@
         ];
         edges.forEach(([u, v, d, r]) => {
           const p1 = nodes[u], p2 = nodes[v];
-          ctx.strokeStyle = r > 0.5 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(148, 163, 184, 0.25)';
+          ctx.strokeStyle = r > 0.5 ? ct.edgeRisk : ct.edgeNormal;
           ctx.lineWidth = isMob ? 1.8 : 2.5;
           ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
@@ -2262,9 +2578,9 @@
           ctx.font = isMob ? '8px monospace' : '10.5px monospace';
           const bw = ctx.measureText(lbl).width + (isMob ? 8 : 10);
           const bh = isMob ? 13 : 18;
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.fillStyle = ct.edgeLabelBg;
           ctx.fillRect(mx - bw / 2, my - bh / 2, bw, bh);
-          ctx.fillStyle = r > 0.5 ? '#fca5a5' : '#cbd5e1';
+          ctx.fillStyle = r > 0.5 ? ct.edgeLabelRisk : ct.edgeLabelText;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(lbl, mx, my + 0.5);
@@ -2290,7 +2606,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(n.id, n.x, n.y + 0.5);
 
-          ctx.fillStyle = '#f8fafc';
+          ctx.fillStyle = ct.textMain;
           ctx.font = isMob ? 'bold 8.5px sans-serif' : 'bold 11.5px sans-serif';
           const nw = ctx.measureText(n.name).width;
           const cx = Math.max(nw / 2 + 5, Math.min(W - nw / 2 - 5, n.x));
@@ -2324,7 +2640,7 @@
           const tw = ctx.measureText(lbl).width + (isMob ? 8 : 12);
           const tx = Math.max(4, Math.min(W - tw - 4, car.x - tw / 2));
           const ty = Math.max(4, Math.min(H - pillH - 4, car.y + (off < 0 ? -(pillH + 6) : 8)));
-          ctx.fillStyle = 'rgba(7, 12, 24, 0.92)';
+          ctx.fillStyle = ct.pillBg;
           ctx.strokeStyle = col;
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.roundRect(tx, ty, tw, pillH, 4); ctx.fill(); ctx.stroke();
@@ -2334,8 +2650,8 @@
           ctx.fillText(lbl, tx + tw / 2, ty + pillH / 2 + 0.5);
         }
         const rOff = isMob ? 3.5 : 5;
-        if (mlMode === 'noml' || mlMode === 'both') drawRoute(pNoML, '#ef4444', -rOff, isMob ? 'Shortest (No ML)' : 'Shortest Path (No ML)');
-        if (mlMode === 'ml' || mlMode === 'both') drawRoute(pML, '#22c55e', rOff, isMob ? 'Safe Path (ML)' : 'Risk-weighted Demo Path');
+        if (mlMode === 'noml' || mlMode === 'both') drawRoute(pNoML, ct.red, -rOff, isMob ? 'Shortest (No ML)' : 'Shortest Path (No ML)');
+        if (mlMode === 'ml' || mlMode === 'both') drawRoute(pML, ct.green, rOff, isMob ? 'Safe Path (ML)' : 'Risk-weighted Demo Path');
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
 
@@ -2399,6 +2715,7 @@
     function drawTab3() {
       const { W, H } = setupCanvasDpr(mainCanvas, ctx);
       const isMob = W < 560;
+      const ct = getCanvasTheme();
       ctx.clearRect(0, 0, W, H);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
@@ -2427,10 +2744,10 @@
         { x: col2X, y: row2Y, w: bw, h: bh, title: isMob ? '5. No EKF/ZUPT' : '5. EKF / ZUPT Absent', sub: isMob ? 'Offline only' : 'Not implemented in this demo', col: '#10b981' },
         { x: col2X, y: row3Y, w: bw, h: bh, title: isMob ? '6. Risk Weights' : '6. Fixed Risk Weighting', sub: isMob ? 'Toy edge formula' : 'Toy values; no Bayesian model', col: '#ec4899' },
 
-        { x: col3X, y: row1Y + (isMob ? 12 : 20), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '7. ML Models' : '7. Offline ML Models', sub: isMob ? 'MLP + Stacking' : 'Standalone MLP + two target stacks', col: mlMode === 'noml' ? '#475569' : '#22c55e' },
-        { x: col3X, y: row3Y - (isMob ? 10 : 16), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '8. Route Demo' : '8. Preset Route Demo', sub: isMob ? 'Threshold switch' : 'Threshold switch; no solver', col: mlMode === 'noml' ? '#475569' : '#14b8a6' },
+        { x: col3X, y: row1Y + (isMob ? 12 : 20), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '7. ML Models' : '7. Offline ML Models', sub: isMob ? 'MLP + Stacking' : 'Standalone MLP + two target stacks', col: mlMode === 'noml' ? ct.blockDisabled : ct.green },
+        { x: col3X, y: row3Y - (isMob ? 10 : 16), w: bw, h: bh + (isMob ? 8 : 14), title: isMob ? '8. Route Demo' : '8. Preset Route Demo', sub: isMob ? 'Threshold switch' : 'Threshold switch; no solver', col: mlMode === 'noml' ? ct.blockDisabled : '#14b8a6' },
 
-        { x: col4X, y: row2Y - (isMob ? 6 : 10), w: bw, h: bh * 1.3, title: '9. Offline Trace', sub: mlMode === 'noml' ? (isMob ? `${backendData.metrics.endpoint_dr}m error` : `${backendData.metrics.endpoint_dr}m baseline\nholdout endpoint`) : (isMob ? `${backendData.metrics.imp_mlp}% MLP gain` : `${backendData.metrics.imp_mlp}% MLP reduction\nholdout endpoint`), col: mlMode === 'noml' ? '#ef4444' : '#22c55e' }
+        { x: col4X, y: row2Y - (isMob ? 6 : 10), w: bw, h: bh * 1.3, title: '9. Offline Trace', sub: mlMode === 'noml' ? (isMob ? `${backendData.metrics.endpoint_dr}m error` : `${backendData.metrics.endpoint_dr}m baseline\nholdout endpoint`) : (isMob ? `${backendData.metrics.imp_mlp}% MLP gain` : `${backendData.metrics.imp_mlp}% MLP reduction\nholdout endpoint`), col: mlMode === 'noml' ? ct.red : ct.green }
       ];
 
       const links = [
@@ -2442,29 +2759,29 @@
         const x1 = b1.x + b1.w, y1 = b1.y + b1.h / 2;
         const x2 = b2.x, y2 = b2.y + b2.h / 2;
 
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = isMob ? 1.6 : 2.5;
+        ctx.strokeStyle = ct.linkLine; ctx.lineWidth = isMob ? 1.6 : 2.5;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 
         for (let k = 0; k < 2; k++) {
           const t = ((progress * 3.5 + idx * 0.13 + k * 0.5) % 1.0);
           const px = x1 + (x2 - x1) * t;
           const py = y1 + (y2 - y1) * t;
-          ctx.fillStyle = mlMode === 'noml' ? '#ef4444' : '#38bdf8';
+          ctx.fillStyle = mlMode === 'noml' ? ct.red : ct.cyan;
           ctx.beginPath(); ctx.arc(px, py, isMob ? 3.5 : 5, 0, Math.PI * 2); ctx.fill();
         }
       });
 
       blocks.forEach(b => {
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = ct.blockBg;
         ctx.strokeStyle = b.col;
         ctx.lineWidth = isMob ? 1.5 : 2.2;
         ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, isMob ? 6 : 10); ctx.fill(); ctx.stroke();
 
         ctx.save();
         ctx.beginPath(); ctx.roundRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4, isMob ? 5 : 8); ctx.clip();
-        ctx.fillStyle = '#f8fafc'; ctx.font = isMob ? 'bold 8px sans-serif' : 'bold 11.5px sans-serif';
+        ctx.fillStyle = ct.textMain; ctx.font = isMob ? 'bold 8px sans-serif' : 'bold 11.5px sans-serif';
         ctx.fillText(b.title, b.x + (isMob ? 5 : 11), b.y + (isMob ? 18 : 25));
-        ctx.fillStyle = '#94a3b8'; ctx.font = isMob ? '7.5px monospace' : '10.5px monospace';
+        ctx.fillStyle = ct.textMuted; ctx.font = isMob ? '7.5px monospace' : '10.5px monospace';
         b.sub.split('\n').forEach((ln, i) => ctx.fillText(ln, b.x + (isMob ? 5 : 11), b.y + (isMob ? 32 : 45) + i * (isMob ? 11 : 16)));
         ctx.restore();
       });
@@ -2652,23 +2969,23 @@
             Offline Python model predictions vs. recorded benchmark target:
           </div>
           <div class="infer-pred-grid">
-            <div style="background:#0b1220; border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#94a3b8; font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dx: ${d.ground_truth.dx} m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#f8fafc; font-weight:700;">dy: ${d.ground_truth.dy} m</div>
-              <div style="font-size:10px; color:#64748b; margin-top:4px;">Benchmark Target</div>
+            <div class="pred-card pred-card-gt">
+              <div style="font-size:10.5px; color:var(--muted); font-weight:700; margin-bottom:4px;">Recorded dataset target</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--text); font-weight:700;">dx: ${d.ground_truth.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--text); font-weight:700;">dy: ${d.ground_truth.dy} m</div>
+              <div style="font-size:10px; color:var(--muted); margin-top:4px;">Benchmark Target</div>
             </div>
-            <div style="background:#0b1220; border:1px solid #22c55e; border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#4ade80; font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dx: ${d.prediction_mlp.dx > 0 ? '+' : ''}${d.prediction_mlp.dx} m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#22c55e; font-weight:700;">dy: ${d.prediction_mlp.dy > 0 ? '+' : ''}${d.prediction_mlp.dy} m</div>
-              <div style="font-size:10px; color:#22c55e; margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_mlp}%</div>
+            <div class="pred-card pred-card-mlp">
+              <div style="font-size:10.5px; color:var(--green); font-weight:700; margin-bottom:4px;">Standalone MLP (128-64-32)</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--green); font-weight:700;">dx: ${d.prediction_mlp.dx > 0 ? '+' : ''}${d.prediction_mlp.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--green); font-weight:700;">dy: ${d.prediction_mlp.dy > 0 ? '+' : ''}${d.prediction_mlp.dy} m</div>
+              <div style="font-size:10px; color:var(--green); margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_mlp}%</div>
             </div>
-            <div style="background:#0b1220; border:1px solid #38bdf8; border-radius:8px; padding:8px 10px;">
-              <div style="font-size:10.5px; color:#38bdf8; font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dx: ${d.prediction_stack.dx > 0 ? '+' : ''}${d.prediction_stack.dx} m</div>
-              <div style="font-family:'Consolas', monospace; font-size:12px; color:#38bdf8; font-weight:700;">dy: ${d.prediction_stack.dy > 0 ? '+' : ''}${d.prediction_stack.dy} m</div>
-              <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_stack}%</div>
+            <div class="pred-card pred-card-stack">
+              <div style="font-size:10.5px; color:var(--cyan); font-weight:700; margin-bottom:4px;">Stacking Regression Models</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--cyan); font-weight:700;">dx: ${d.prediction_stack.dx > 0 ? '+' : ''}${d.prediction_stack.dx} m</div>
+              <div style="font-family:'Consolas', monospace; font-size:12px; color:var(--cyan); font-weight:700;">dy: ${d.prediction_stack.dy > 0 ? '+' : ''}${d.prediction_stack.dy} m</div>
+              <div style="font-size:10px; color:var(--cyan); margin-top:4px; font-weight:700;">Holdout endpoint error change: ${backendData.metrics.imp_stack}%</div>
             </div>
           </div>
         `;
